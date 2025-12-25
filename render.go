@@ -77,7 +77,7 @@ func renderSplit[KID KeelID](s *SplitSpec[KID], ctx Context[KID]) (string, error
 	sizes, err := alloc(total, specs)
 	if err != nil {
 		if err == ErrTargetTooSmall {
-			return "", &TargetTooSmallError{Axis: axis, Need: requiredMin(specs, axis), Have: total}
+			return "", &TargetTooSmallError{Axis: axis, Need: requiredMin(specs), Have: total}
 		}
 		return "", err
 	}
@@ -171,7 +171,7 @@ func renderPanel[KID KeelID](p *PanelSpec[KID], ctx Context[KID]) (string, error
 	return content, nil
 }
 
-func requiredMin(specs []SizeSpec, axis Axis) int {
+func requiredMin(specs []SizeSpec) int {
 	required := 0
 	for _, spec := range specs {
 		switch spec.Kind {
