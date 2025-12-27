@@ -8,8 +8,8 @@ import (
 
 func TestDefaultDebugProviderFitsContent(t *testing.T) {
 	provider := DefaultDebugProvider[string]
-	info := RenderInfo[string]{
-		ID:            "a",
+	id := "a"
+	info := RenderInfo{
 		Width:         6,
 		Height:        3,
 		ContentWidth:  6,
@@ -19,7 +19,7 @@ func TestDefaultDebugProviderFitsContent(t *testing.T) {
 		Clip:          ClipConstraint{},
 	}
 
-	got, err := provider(info)
+	got, err := provider(id, info)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -31,8 +31,8 @@ func TestDefaultDebugProviderFitsContent(t *testing.T) {
 
 func TestDefaultDebugProviderCompactSingleLine(t *testing.T) {
 	provider := DefaultDebugProvider[string]
-	info := RenderInfo[string]{
-		ID:            "header",
+	id := "header"
+	info := RenderInfo{
 		Width:         70,
 		Height:        12,
 		ContentWidth:  80,
@@ -41,7 +41,7 @@ func TestDefaultDebugProviderCompactSingleLine(t *testing.T) {
 		FrameHeight:   2,
 	}
 
-	got, err := provider(info)
+	got, err := provider(id, info)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -53,8 +53,8 @@ func TestDefaultDebugProviderCompactSingleLine(t *testing.T) {
 
 func TestDefaultDebugProviderCompactTwoLines(t *testing.T) {
 	provider := DefaultDebugProvider[string]
-	info := RenderInfo[string]{
-		ID:            "status",
+	id := "status"
+	info := RenderInfo{
 		Width:         30,
 		Height:        3,
 		ContentWidth:  80,
@@ -63,7 +63,7 @@ func TestDefaultDebugProviderCompactTwoLines(t *testing.T) {
 		FrameHeight:   2,
 	}
 
-	got, err := provider(info)
+	got, err := provider(id, info)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,8 +75,8 @@ func TestDefaultDebugProviderCompactTwoLines(t *testing.T) {
 
 func TestDefaultDebugProviderExpandedLines(t *testing.T) {
 	provider := DefaultDebugProvider[string]
-	info := RenderInfo[string]{
-		ID:            "nav",
+	id := "nav"
+	info := RenderInfo{
 		Width:         15,
 		Height:        6,
 		ContentWidth:  20,
@@ -86,7 +86,7 @@ func TestDefaultDebugProviderExpandedLines(t *testing.T) {
 		Clip:          ClipConstraint{Width: 10, Height: 0},
 	}
 
-	got, err := provider(info)
+	got, err := provider(id, info)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

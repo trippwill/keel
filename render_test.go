@@ -7,8 +7,8 @@ import (
 	gloss "github.com/charmbracelet/lipgloss"
 )
 
-func makeContentProvider(result string) func(RenderInfo[string]) (string, error) {
-	return func(info RenderInfo[string]) (string, error) {
+func makeContentProvider(result string) func(string, RenderInfo) (string, error) {
+	return func(_ string, _ RenderInfo) (string, error) {
 		return result, nil
 	}
 }
@@ -42,7 +42,7 @@ func TestRenderSplit_AllocTooSmall(t *testing.T) {
 	}
 }
 
-func TestRenderSplit_ChildChromeTooTall(t *testing.T) {
+func TestRenderSplit_SlotChromeTooTall(t *testing.T) {
 	split := Row(
 		FlexUnit(),
 		Panel(Fixed(2), "a"),
@@ -74,7 +74,7 @@ func TestRenderSplit_ChildChromeTooTall(t *testing.T) {
 	}
 }
 
-func TestRenderSplit_ChildChromeTooWide(t *testing.T) {
+func TestRenderSplit_SlotChromeTooWide(t *testing.T) {
 	split := Row(
 		FlexUnit(),
 		Panel(Fixed(1), "a"),
@@ -121,7 +121,8 @@ func TestRenderPanel_ContentProviderInfo(t *testing.T) {
 		Border(gloss.NormalBorder()).
 		Padding(1, 2).
 		Margin(1, 1)
-	var got RenderInfo[string]
+	var got RenderInfo
+	var gotID string
 	calls := 0
 	ctx := Context[string]{
 		Width:  20,
@@ -129,7 +130,8 @@ func TestRenderPanel_ContentProviderInfo(t *testing.T) {
 		StyleProvider: func(id string) *gloss.Style {
 			return &style
 		},
-		ContentProvider: func(info RenderInfo[string]) (string, error) {
+		ContentProvider: func(id string, info RenderInfo) (string, error) {
+			gotID = id
 			got = info
 			calls++
 			return "ok", nil
@@ -145,8 +147,8 @@ func TestRenderPanel_ContentProviderInfo(t *testing.T) {
 	}
 
 	frameWidth, frameHeight := style.GetFrameSize()
-	if got.ID != "a" {
-		t.Fatalf("expected ID %q, got %q", "a", got.ID)
+	if gotID != "a" {
+		t.Fatalf("expected ID %q, got %q", "a", gotID)
 	}
 	if got.Width != ctx.Width || got.Height != ctx.Height {
 		t.Fatalf("expected %dx%d, got %dx%d", ctx.Width, ctx.Height, got.Width, got.Height)

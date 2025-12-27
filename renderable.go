@@ -1,18 +1,22 @@
 package keel
 
-// Renderable is an element that can be rendered within a layout tree.
+// Renderable is an element that participates in the layout hierarchy.
+// The extent returned is the total allocation along the container axis,
+// including any frame space for blocks.
 type Renderable interface {
 	GetExtent() ExtentConstraint // Returns the desired total extent along an axis.
 }
 
 // Block is a [Renderable] with an ID, used for content and styling.
+// Blocks are the only renderables that produce output content.
 type Block[KID KeelID] interface {
 	Renderable
 	GetID() KID
 	GetClip() ClipConstraint // Returns the content clip (max content size).
 }
 
-// Container is a [Renderable] that contains Slots for other [Renderable]s.
+// Container is a [Renderable] that splits its allocation across slots.
+// Slot access must be stable for the duration of a render pass.
 type Container interface {
 	Renderable
 	GetAxis() Axis                     // Layout axis of the container

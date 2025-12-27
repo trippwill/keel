@@ -8,25 +8,26 @@ import (
 )
 
 // DefaultDebugProvider returns a debug content provider that fits the content box.
-func DefaultDebugProvider[KID KeelID](info RenderInfo[KID]) (string, error) {
+// It truncates lines to ContentWidth and caps the number of lines to ContentHeight.
+func DefaultDebugProvider[KID KeelID](id KID, info RenderInfo) (string, error) {
 	if info.ContentWidth <= 0 || info.ContentHeight <= 0 {
 		return "", nil
 	}
 
-	compact := formatCompactDebug(info)
+	compact := formatCompactDebug(id, info)
 	if info.ContentHeight == 1 {
 		return truncateDebugLine(compact, info.ContentWidth), nil
 	}
 	if info.ContentHeight == 2 {
 		lines := []string{
-			truncateDebugLine(fmt.Sprintf("id:%v", info.ID), info.ContentWidth),
+			truncateDebugLine(fmt.Sprintf("id:%v", id), info.ContentWidth),
 			truncateDebugLine(compact, info.ContentWidth),
 		}
 		return strings.Join(lines, "\n"), nil
 	}
 
 	lines := []string{
-		fmt.Sprintf("id:%v", info.ID),
+		fmt.Sprintf("id:%v", id),
 		fmt.Sprintf("alloc:%dx%d", info.Width, info.Height),
 		fmt.Sprintf("frame:%dx%d", info.FrameWidth, info.FrameHeight),
 		fmt.Sprintf("content:%dx%d", info.ContentWidth, info.ContentHeight),
@@ -51,9 +52,9 @@ func truncateDebugLine(s string, width int) string {
 	return ansi.Truncate(s, width, "")
 }
 
-func formatCompactDebug[KID KeelID](info RenderInfo[KID]) string {
+func formatCompactDebug[KID KeelID](id KID, info RenderInfo) string {
 	parts := []string{
-		fmt.Sprintf("id:%v", info.ID),
+		fmt.Sprintf("id:%v", id),
 		fmt.Sprintf("a:%dx%d", info.Width, info.Height),
 		fmt.Sprintf("f:%dx%d", info.FrameWidth, info.FrameHeight),
 		fmt.Sprintf("c:%dx%d", info.ContentWidth, info.ContentHeight),

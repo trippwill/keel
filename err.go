@@ -37,6 +37,7 @@ var (
 )
 
 // ExtentTooSmallError includes context about which allocation failed.
+// It wraps ErrExtentTooSmall for errors.Is checks.
 type ExtentTooSmallError struct {
 	Axis       Axis
 	Need, Have int
@@ -68,6 +69,7 @@ func (e *ExtentTooSmallError) Unwrap() error {
 }
 
 // ConfigError wraps a configuration issue with a specific reason.
+// It unwraps to the underlying reason and matches ErrConfigurationInvalid.
 type ConfigError struct {
 	Reason error
 }
@@ -94,6 +96,7 @@ func (e *ConfigError) Is(target error) bool {
 }
 
 // ContentProviderMissingError indicates a missing content provider for a block ID.
+// It wraps ErrContentProviderMissing for errors.Is checks.
 type ContentProviderMissingError struct {
 	ID any
 }
@@ -107,6 +110,7 @@ func (e *ContentProviderMissingError) Unwrap() error {
 }
 
 // UnknownBlockIDError indicates a request for an unknown block ID.
+// It wraps ErrUnknownBlockID for errors.Is checks.
 type UnknownBlockIDError struct {
 	ID any
 }
@@ -120,6 +124,7 @@ func (e *UnknownBlockIDError) Unwrap() error {
 }
 
 // ExtentError describes a validation issue for a specific extent.
+// It wraps ErrConfigurationInvalid and the underlying reason.
 type ExtentError struct {
 	Index  int
 	Reason error
@@ -147,6 +152,7 @@ func (e *ExtentError) Is(target error) bool {
 }
 
 // SlotError describes a validation issue for a specific slot.
+// It wraps ErrConfigurationInvalid and the underlying reason.
 type SlotError struct {
 	Index  int
 	Reason error

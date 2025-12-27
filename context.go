@@ -2,26 +2,21 @@ package keel
 
 import gloss "github.com/charmbracelet/lipgloss"
 
-// KeelID is a comparable type used as an identifier for Renderables and resources.
+// KeelID is a comparable type used as a stable identifier for blocks and resources.
 type KeelID comparable
 
-// StyleProvider returns a style for the given ID. Nil means "no style".
-// Returned styles are treated as immutable and may be cached.
+// StyleProvider returns a style for the given block ID. Nil means "no style".
+// Returned styles are treated as immutable and are safe to cache; the renderer
+// copies them before mutation.
 type StyleProvider[KID KeelID] func(id KID) *gloss.Style
 
-// ContentProvider returns content for the given render allocation.
-type ContentProvider[KID KeelID] func(info RenderInfo[KID]) (string, error)
+// ContentProvider returns content for the given block allocation.
+// Providers should respect ContentWidth/ContentHeight.
+// ClipConstraint will be applied after content is retrieved.
+type ContentProvider[KID KeelID] func(id KID, info RenderInfo) (string, error)
 
-// RenderInfo describes the allocated space for a leaf Renderable.
-type RenderInfo[KID KeelID] struct {
-	ID                          KID
-	Width, Height               int
-	ContentWidth, ContentHeight int
-	FrameWidth, FrameHeight     int
-	Clip                        ClipConstraint
-}
-
-// Context provides rendering context for a Renderable.
+// Context provides rendering inputs for a render pass, including allocation
+// size and the content/style providers used by blocks.
 type Context[KID KeelID] struct {
 	// Width and Height define the total space for rendering.
 	Width, Height int

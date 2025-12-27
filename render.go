@@ -7,9 +7,10 @@ import (
 	gloss "github.com/charmbracelet/lipgloss"
 )
 
-// Render renders a [Renderable] node given the rendering context.
-func Render[KID KeelID](node Renderable, ctx Context[KID]) (string, error) {
-	switch n := node.(type) {
+// Render renders a [Renderable] given the rendering context.
+// It dispatches to RenderContainer or RenderBlock based on the concrete type.
+func Render[KID KeelID](renderable Renderable, ctx Context[KID]) (string, error) {
+	switch n := renderable.(type) {
 	case Block[KID]:
 		return RenderBlock(n, ctx)
 	case Container:
@@ -19,7 +20,9 @@ func Render[KID KeelID](node Renderable, ctx Context[KID]) (string, error) {
 	}
 }
 
-// RenderContainer renders a [Container] node given the rendering context.
+// RenderContainer renders a [Container] given the rendering context.
+// The container's extent is split across slots using the resolver rules.
+// Allocation failures are reported as ExtentTooSmallError.
 func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string, error) {
 	length := container.Len()
 	axis := container.GetAxis()
@@ -28,11 +31,11 @@ func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string,
 	}
 
 	extentAt := func(index int) (ExtentConstraint, error) {
-		child, ok := container.Slot(index)
-		if !ok || child == nil {
+		slot, ok := container.Slot(index)
+		if !ok || slot == nil {
 			return ExtentConstraint{}, &SlotError{Index: index, Reason: ErrNilSlot}
 		}
-		return child.GetExtent(), nil
+		return slot.GetExtent(), nil
 	}
 
 	rendered := make([]string, length)
@@ -53,12 +56,12 @@ func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string,
 		}
 
 		for i, width := range widths {
-			child, ok := container.Slot(i)
-			if !ok || child == nil {
+			slot, ok := container.Slot(i)
+			if !ok || slot == nil {
 				return "", &SlotError{Index: i, Reason: ErrNilSlot}
 			}
 			_ctx := ctx.WithWidth(width)
-			rendered[i], err = Render(child, _ctx)
+			rendered[i], err = Render(slot, _ctx)
 			if err != nil {
 				return "", err
 			}
@@ -81,12 +84,12 @@ func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string,
 		}
 
 		for i, height := range heights {
-			child, ok := container.Slot(i)
-			if !ok || child == nil {
+			slot, ok := container.Slot(i)
+			if !ok || slot == nil {
 				return "", &SlotError{Index: i, Reason: ErrNilSlot}
 			}
 			_ctx := ctx.WithHeight(height)
-			rendered[i], err = Render(child, _ctx)
+			rendered[i], err = Render(slot, _ctx)
 			if err != nil {
 				return "", err
 			}
@@ -97,30 +100,32 @@ func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string,
 	return "", &ConfigError{Reason: ErrInvalidAxis}
 }
 
-// RenderBlock renders a [Block] node given the rendering context.
-// It validates that frame and content (or clip) fit in the allocation.
+// RenderBlock renders a [Block] given the rendering context.
+// It validates that frame and content (after clipping) fit in the allocation.
 // Styles are copied before mutation, so cached styles are safe to reuse.
-func RenderBlock[KID KeelID](node Block[KID], ctx Context[KID]) (string, error) {
-	style := styleFor(ctx, node)
-	frameWidth, frameHeight := 0, 0
-	marginWidth, marginHeight := 0, 0
-	borderWidth, borderHeight := 0, 0
-	var transform func(string) string
-	if style != nil {
-		frameWidth, frameHeight = style.GetFrameSize()
-		marginWidth = style.GetHorizontalMargins()
-		marginHeight = style.GetVerticalMargins()
-		borderWidth = style.GetHorizontalBorderSize()
-		borderHeight = style.GetVerticalBorderSize()
-		transform = style.GetTransform()
+func RenderBlock[KID KeelID](block Block[KID], ctx Context[KID]) (string, error) {
+	providedStyle := styleFor(ctx, block)
+	var style gloss.Style
+	if providedStyle == nil {
+		style = gloss.NewStyle()
+	} else {
+		style = (*providedStyle)
 	}
+
+	var transform func(string) string
+	frameWidth, frameHeight := style.GetFrameSize()
+	marginWidth := style.GetHorizontalMargins()
+	marginHeight := style.GetVerticalMargins()
+	borderWidth := style.GetHorizontalBorderSize()
+	borderHeight := style.GetVerticalBorderSize()
+	transform = style.GetTransform()
 
 	if frameWidth > ctx.Width {
 		return "", &ExtentTooSmallError{
 			Axis:   AxisHorizontal,
 			Need:   frameWidth,
 			Have:   ctx.Width,
-			Source: sourceFor(node),
+			Source: sourceFor(block),
 			Reason: "frame",
 		}
 	}
@@ -129,33 +134,25 @@ func RenderBlock[KID KeelID](node Block[KID], ctx Context[KID]) (string, error) 
 			Axis:   AxisVertical,
 			Need:   frameHeight,
 			Have:   ctx.Height,
-			Source: sourceFor(node),
+			Source: sourceFor(block),
 			Reason: "frame",
 		}
-	}
-
-	var outerStyle gloss.Style
-	if style == nil {
-		outerStyle = gloss.NewStyle()
-	} else {
-		outerStyle = (*style)
 	}
 
 	availableWidth := ctx.Width - frameWidth
 	availableHeight := ctx.Height - frameHeight
 
-	info := RenderInfo[KID]{
-		ID:            node.GetID(),
+	info := RenderInfo{
 		Width:         ctx.Width,
 		Height:        ctx.Height,
 		ContentWidth:  availableWidth,
 		ContentHeight: availableHeight,
 		FrameWidth:    frameWidth,
 		FrameHeight:   frameHeight,
-		Clip:          node.GetClip(),
+		Clip:          block.GetClip(),
 	}
 
-	content, err := contentFor(ctx, info)
+	content, err := contentFor(ctx, block.GetID(), info)
 	if err != nil {
 		return "", err
 	}
@@ -163,7 +160,7 @@ func RenderBlock[KID KeelID](node Block[KID], ctx Context[KID]) (string, error) 
 	contentForMeasure := content
 	if transform != nil {
 		contentForMeasure = transform(contentForMeasure)
-		outerStyle = outerStyle.UnsetTransform()
+		style = style.UnsetTransform()
 	}
 
 	// Clip only affects content, not the frame.
@@ -186,7 +183,7 @@ func RenderBlock[KID KeelID](node Block[KID], ctx Context[KID]) (string, error) 
 			Axis:   AxisHorizontal,
 			Need:   frameWidth + contentWidth,
 			Have:   ctx.Width,
-			Source: sourceFor(node),
+			Source: sourceFor(block),
 			Reason: "content",
 		}
 	}
@@ -195,35 +192,35 @@ func RenderBlock[KID KeelID](node Block[KID], ctx Context[KID]) (string, error) 
 			Axis:   AxisVertical,
 			Need:   frameHeight + contentHeight,
 			Have:   ctx.Height,
-			Source: sourceFor(node),
+			Source: sourceFor(block),
 			Reason: "content",
 		}
 	}
 
 	outerWidth := ctx.Width - marginWidth - borderWidth
 	outerHeight := ctx.Height - marginHeight - borderHeight
-	outerStyle = outerStyle.
+	style = style.
 		Width(outerWidth).
 		Height(outerHeight)
 
-	return outerStyle.Render(contentToRender), nil
+	return style.Render(contentToRender), nil
 }
 
-func styleFor[KID KeelID](ctx Context[KID], node Block[KID]) *gloss.Style {
+func styleFor[KID KeelID](ctx Context[KID], block Block[KID]) *gloss.Style {
 	if ctx.StyleProvider == nil {
 		return nil
 	}
-	return ctx.StyleProvider(node.GetID())
+	return ctx.StyleProvider(block.GetID())
 }
 
-func contentFor[KID KeelID](ctx Context[KID], info RenderInfo[KID]) (string, error) {
+func contentFor[KID KeelID](ctx Context[KID], id KID, info RenderInfo) (string, error) {
 	if ctx.ContentProvider == nil {
-		return "", &ContentProviderMissingError{ID: info.ID}
+		return "", &ContentProviderMissingError{ID: id}
 	}
 
-	return ctx.ContentProvider(info)
+	return ctx.ContentProvider(id, info)
 }
 
-func sourceFor[KID KeelID](node Block[KID]) string {
-	return fmt.Sprintf("block %v", node.GetID())
+func sourceFor[KID KeelID](block Block[KID]) string {
+	return fmt.Sprintf("block %v", block.GetID())
 }

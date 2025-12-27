@@ -1,15 +1,18 @@
 package keel
 
 // ExtentResolver distributes a total number of cells across slot extents.
+// It returns per-slot sizes and the minimum required total, or an error.
 // The extentAt callback is invoked for each index as needed.
 type ExtentResolver func(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error)
 
 // RowResolver distributes width across slots for horizontal splits.
+// It mirrors the allocation rules used by containers.
 func RowResolver(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error) {
 	return resolve(total, count, extentAt)
 }
 
 // ColResolver distributes height across slots for vertical splits.
+// It mirrors the allocation rules used by containers.
 func ColResolver(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error) {
 	return resolve(total, count, extentAt)
 }

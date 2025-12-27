@@ -5,7 +5,7 @@ import (
 	"github.com/trippwill/chiplog/keel"
 )
 
-// ExampleSplit returns the example layout tree used across demos and tests.
+// ExampleSplit returns the example layout hierarchy used across demos and tests.
 func ExampleSplit() keel.Renderable {
 	return keel.Col(keel.FlexUnit(),
 		keel.PanelClip(keel.Fixed(3), keel.ClipHeight(1), "header"),
@@ -22,8 +22,8 @@ func ExampleSplit() keel.Renderable {
 }
 
 // ExampleSplitContentProvider returns content for the example layout.
-func ExampleSplitContentProvider(info keel.RenderInfo[string]) (string, error) {
-	switch info.ID {
+func ExampleSplitContentProvider(id string, _ keel.RenderInfo) (string, error) {
+	switch id {
 	case "header":
 		return "Chiplog Dashboard", nil
 	case "nav":
@@ -37,7 +37,7 @@ func ExampleSplitContentProvider(info keel.RenderInfo[string]) (string, error) {
 	case "help":
 		return "?: help  q: quit", nil
 	default:
-		return "", &keel.UnknownBlockIDError{ID: info.ID}
+		return "", &keel.UnknownBlockIDError{ID: id}
 	}
 }
 
