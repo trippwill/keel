@@ -1,4 +1,3 @@
-//go:generate stringer -type=NodeKind
 package keel
 
 import gloss "github.com/charmbracelet/lipgloss"
@@ -6,33 +5,35 @@ import gloss "github.com/charmbracelet/lipgloss"
 // KeelID is a comparable type used as an identifier for Renderables and resources.
 type KeelID comparable
 
-// NodeKind describes whether a node is a container or leaf content.
-type NodeKind uint8
+// StyleProvider returns a style for the given ID. Nil means "no style".
+// Returned styles are treated as immutable and may be cached.
+type StyleProvider[KID KeelID] func(id KID) *gloss.Style
 
-const (
-	NodeContent NodeKind = iota
-	NodeContainer
-)
+// ContentProvider returns content for the given render allocation.
+type ContentProvider[KID KeelID] func(info RenderInfo[KID]) (string, error)
 
-// StyleProvider returns a style for the given ID and node kind. Nil means "no style".
-type StyleProvider[KID KeelID] func(id KID, kind NodeKind) *gloss.Style
-
-// ContentProvider returns content for the given ID.
-type ContentProvider[KID KeelID] func(id KID) (string, error)
+// RenderInfo describes the allocated space for a leaf Renderable.
+type RenderInfo[KID KeelID] struct {
+	ID                          KID
+	Width, Height               int
+	ContentWidth, ContentHeight int
+	FrameWidth, FrameHeight     int
+	Clip                        ClipConstraint
+}
 
 // Context provides rendering context for a Renderable.
 type Context[KID KeelID] struct {
-	// Width and Height define the space for rendering.
+	// Width and Height define the total space for rendering.
 	Width, Height int
 
-	// Provides style information for a given KID.
+	// Provides style information for a [Block].
 	StyleProvider StyleProvider[KID]
 
-	// Provides string content for a given KID.
-	// Not called for containers; only for leaf Renderables.
+	// Provides string content for a [Block].
 	ContentProvider ContentProvider[KID]
 }
 
+// WithSize returns a copy of the context with updated dimensions.
 func (c Context[KID]) WithSize(width, height int) Context[KID] {
 	return Context[KID]{
 		Width:           width,
@@ -42,6 +43,7 @@ func (c Context[KID]) WithSize(width, height int) Context[KID] {
 	}
 }
 
+// WithWidth returns a copy of the context with an updated width.
 func (c Context[KID]) WithWidth(width int) Context[KID] {
 	return Context[KID]{
 		Width:           width,
@@ -51,6 +53,7 @@ func (c Context[KID]) WithWidth(width int) Context[KID] {
 	}
 }
 
+// WithHeight returns a copy of the context with an updated height.
 func (c Context[KID]) WithHeight(height int) Context[KID] {
 	return Context[KID]{
 		Width:           c.Width,
@@ -60,6 +63,7 @@ func (c Context[KID]) WithHeight(height int) Context[KID] {
 	}
 }
 
+// WithStyleProvider returns a copy of the context with the given style provider.
 func (c Context[KID]) WithStyleProvider(p StyleProvider[KID]) Context[KID] {
 	return Context[KID]{
 		Width:           c.Width,
@@ -69,6 +73,7 @@ func (c Context[KID]) WithStyleProvider(p StyleProvider[KID]) Context[KID] {
 	}
 }
 
+// WithContentProvider returns a copy of the context with the given content provider.
 func (c Context[KID]) WithContentProvider(p ContentProvider[KID]) Context[KID] {
 	return Context[KID]{
 		Width:           c.Width,
