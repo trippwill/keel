@@ -1,65 +1,61 @@
 package keel
 
 // SplitSpec defines a layout container that splits space along an axis.
-type SplitSpec[KID KeelID] struct {
-	id    KID
-	axis  Axis
-	slots []Slot[KID]
+type SplitSpec struct {
+	ExtentConstraint
+	axis Axis
+	rs   []Renderable
 }
 
 var (
-	_ Container[string]  = (*SplitSpec[string])(nil)
-	_ Renderable[string] = (*SplitSpec[string])(nil)
+	_ Container  = (*SplitSpec)(nil)
+	_ Renderable = (*SplitSpec)(nil)
 )
 
 // Split creates a new split with the given axis.
+// Slots are stored as references. Mutating slots after creation will affect the Split.
 // Empty slots will panic.
-func Split[KID KeelID](id KID, axis Axis, slots ...Slot[KID]) *SplitSpec[KID] {
+func Split(axis Axis, extent ExtentConstraint, slots ...Renderable) *SplitSpec {
 	if (axis != AxisHorizontal) && (axis != AxisVertical) {
-		panic("invalid axis for Split")
+		panic(ErrInvalidAxis)
 	}
 
-	return &SplitSpec[KID]{
-		id:    id,
-		axis:  axis,
-		slots: copySlots(slots),
+	if len(slots) == 0 {
+		panic(ErrEmptySlots)
+	}
+
+	return &SplitSpec{
+		ExtentConstraint: extent,
+		axis:             axis,
+		rs:               slots,
 	}
 }
 
 // Row creates a new horizontal split.
+// Slots are stored as references. Mutating slots after creation will affect the Split.
 // Empty slots will panic.
-func Row[KID KeelID](id KID, slots ...Slot[KID]) *SplitSpec[KID] {
-	return &SplitSpec[KID]{
-		id:    id,
-		axis:  AxisHorizontal,
-		slots: copySlots(slots),
-	}
+func Row(size ExtentConstraint, slots ...Renderable) *SplitSpec {
+	return Split(AxisHorizontal, size, slots...)
 }
 
 // Col creates a new vertical split.
+// Slots are stored as references. Mutating slots after creation will affect the Split.
 // Empty slots will panic.
-func Col[KID KeelID](id KID, slots ...Slot[KID]) *SplitSpec[KID] {
-	return &SplitSpec[KID]{
-		id:    id,
-		axis:  AxisVertical,
-		slots: copySlots(slots),
-	}
+func Col(size ExtentConstraint, slots ...Renderable) *SplitSpec {
+	return Split(AxisVertical, size, slots...)
 }
 
-func (s *SplitSpec[KID]) GetID() KID    { return s.id }
-func (s *SplitSpec[KID]) GetAxis() Axis { return s.axis }
-func (s *SplitSpec[KID]) Len() int      { return len(s.slots) }
+// GetAxis implements [Container].
+func (s *SplitSpec) GetAxis() Axis { return s.axis }
 
-func (s *SplitSpec[KID]) Slot(index int) (SizeSpec, Renderable[KID], bool) {
-	if index < 0 || index >= len(s.slots) {
-		return SizeSpec{}, nil, false
+// Len implements [Container].
+func (s *SplitSpec) Len() int { return len(s.rs) }
+
+// Slot implements [Container].
+func (s *SplitSpec) Slot(index int) (Renderable, bool) {
+	if index < 0 || index >= len(s.rs) {
+		return nil, false
 	}
 
-	slot := s.slots[index]
-	return slot.Size, slot.Node, true
-}
-
-// Render implements [Renderable].
-func (s *SplitSpec[KID]) Render(cxt Context[KID]) (string, error) {
-	return renderSplit(s, cxt)
+	return s.rs[index], true
 }
