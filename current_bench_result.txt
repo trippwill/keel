@@ -1,0 +1,62 @@
+goos: linux
+goarch: amd64
+pkg: github.com/trippwill/chiplog/keel
+cpu: Intel(R) Core(TM) Ultra 5 228V
+BenchmarkRenderExampleSplit-8     	    7692	    151467 ns/op	   41574 B/op	     732 allocs/op
+BenchmarkRenderExampleSplit-8     	    9390	    147643 ns/op	   40076 B/op	     732 allocs/op
+BenchmarkRenderExampleSplit-8     	    9279	    144796 ns/op	   38839 B/op	     732 allocs/op
+BenchmarkRenderExampleSplit-8     	    8337	    147969 ns/op	   41055 B/op	     732 allocs/op
+BenchmarkRenderExampleSplit-8     	    8438	    147164 ns/op	   40397 B/op	     732 allocs/op
+BenchmarkRenderExampleSplit-8     	    9220	    145901 ns/op	   39369 B/op	     732 allocs/op
+BenchmarkResolveExtentAt/n=3-8    	18464001	        76.83 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=3-8    	15633403	        83.32 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=3-8    	18023140	        83.32 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=3-8    	15760930	        77.62 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=3-8    	13395144	        81.87 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=3-8    	13427059	        82.83 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=8-8    	 9019870	       129.3 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=8-8    	 9804709	       127.1 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=8-8    	 9456812	       127.6 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=8-8    	 9525020	       128.6 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=8-8    	 9429027	       127.9 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=8-8    	 8811726	       131.2 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=32-8   	 3296269	       362.1 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=32-8   	 3302737	       368.1 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=32-8   	 3346321	       361.0 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=32-8   	 3327586	       364.0 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=32-8   	 3343513	       358.9 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=32-8   	 3340057	       359.4 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=128-8  	  801974	      1337 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=128-8  	  795048	      1328 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=128-8  	  908071	      1341 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=128-8  	  830563	      1332 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=128-8  	  898126	      1337 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveExtentAt/n=128-8  	  789812	      1321 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=3-8         	16027077	        75.91 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=3-8         	13838911	        75.26 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=3-8         	17425357	        71.12 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=3-8         	17269732	        73.57 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=3-8         	17239318	        77.08 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=3-8         	19393695	        74.69 ns/op	     104 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=8-8         	10431586	       113.9 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=8-8         	 9698360	       116.3 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=8-8         	10312156	       113.4 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=8-8         	10523520	       113.1 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=8-8         	10652674	       113.7 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=8-8         	11070740	       111.8 ns/op	     256 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=32-8        	 3639496	       325.8 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=32-8        	 3757293	       321.9 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=32-8        	 3798992	       322.9 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=32-8        	 3268264	       357.8 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=32-8        	 3640546	       325.6 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=32-8        	 3668504	       320.7 ns/op	    1024 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=128-8       	 1000000	      1186 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=128-8       	  841759	      1213 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=128-8       	 1000000	      1185 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=128-8       	  999702	      1186 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=128-8       	 1000000	      1177 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkResolveCachedExtents/n=128-8       	  932953	      1197 ns/op	    4096 B/op	       2 allocs/op
+PASS
+ok  	github.com/trippwill/chiplog/keel	65.236s
+?   	github.com/trippwill/chiplog/keel/examples	[no test files]
+?   	github.com/trippwill/chiplog/keel/examples/dashboard	[no test files]

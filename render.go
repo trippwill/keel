@@ -11,10 +11,10 @@ import (
 // It dispatches to RenderContainer or RenderBlock based on the concrete type.
 func Render[KID KeelID](renderable Renderable, ctx Context[KID]) (string, error) {
 	switch n := renderable.(type) {
-	case Block[KID]:
-		return RenderBlock(n, ctx)
 	case Container:
 		return RenderContainer(n, ctx)
+	case Block[KID]:
+		return RenderBlock(n, ctx)
 	default:
 		return "", &ConfigError{Reason: ErrUnknownRenderable}
 	}
@@ -25,23 +25,20 @@ func Render[KID KeelID](renderable Renderable, ctx Context[KID]) (string, error)
 // Allocation failures are reported as ExtentTooSmallError.
 func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string, error) {
 	length := container.Len()
+	if length <= 0 {
+		return "", nil
+	}
+
 	axis := container.GetAxis()
 	if axis != AxisHorizontal && axis != AxisVertical {
 		return "", &ConfigError{Reason: ErrInvalidAxis}
 	}
 
-	extentAt := func(index int) (ExtentConstraint, error) {
-		slot, ok := container.Slot(index)
-		if !ok || slot == nil {
-			return ExtentConstraint{}, &SlotError{Index: index, Reason: ErrNilSlot}
-		}
-		return slot.GetExtent(), nil
-	}
-
 	rendered := make([]string, length)
+
 	switch axis {
 	case AxisHorizontal:
-		widths, required, err := RowResolver(ctx.Width, length, extentAt)
+		widths, required, err := RowResolver(ctx.Width, container)
 		if err != nil {
 			if errors.Is(err, ErrExtentTooSmall) {
 				return "", &ExtentTooSmallError{
@@ -69,7 +66,7 @@ func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string,
 		return gloss.JoinHorizontal(gloss.Top, rendered...), nil
 
 	case AxisVertical:
-		heights, required, err := ColResolver(ctx.Height, length, extentAt)
+		heights, required, err := ColResolver(ctx.Height, container)
 		if err != nil {
 			if errors.Is(err, ErrExtentTooSmall) {
 				return "", &ExtentTooSmallError{
@@ -105,20 +102,28 @@ func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string,
 // Styles are copied before mutation, so cached styles are safe to reuse.
 func RenderBlock[KID KeelID](block Block[KID], ctx Context[KID]) (string, error) {
 	providedStyle := styleFor(ctx, block)
-	var style gloss.Style
+
+	// Initialize to default values
+	var (
+		style                     gloss.Style
+		frameWidth, frameHeight   int
+		marginWidth, marginHeight int
+		borderWidth, borderHeight int
+		transform                 func(string) string
+	)
+
 	if providedStyle == nil {
 		style = gloss.NewStyle()
 	} else {
 		style = (*providedStyle)
-	}
+		frameWidth, frameHeight = style.GetFrameSize()
+		marginWidth = style.GetHorizontalMargins()
+		marginHeight = style.GetVerticalMargins()
+		borderWidth = style.GetHorizontalBorderSize()
+		borderHeight = style.GetVerticalBorderSize()
+		transform = style.GetTransform()
 
-	var transform func(string) string
-	frameWidth, frameHeight := style.GetFrameSize()
-	marginWidth := style.GetHorizontalMargins()
-	marginHeight := style.GetVerticalMargins()
-	borderWidth := style.GetHorizontalBorderSize()
-	borderHeight := style.GetVerticalBorderSize()
-	transform = style.GetTransform()
+	}
 
 	if frameWidth > ctx.Width {
 		return "", &ExtentTooSmallError{

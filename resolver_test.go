@@ -59,7 +59,7 @@ func TestAllocateValidation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, err := resolve(tc.total, len(tc.specs), extentAt(tc.specs))
+			_, _, err := ResolveExtents(tc.total, tc.specs)
 			if !errors.Is(err, tc.err) {
 				t.Fatalf("expected %v, got %v", tc.err, err)
 			}
@@ -106,7 +106,7 @@ func TestAllocateDistribution(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, _, err := resolve(tc.total, len(tc.specs), extentAt(tc.specs))
+			got, _, err := ResolveExtents(tc.total, tc.specs)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -126,7 +126,7 @@ func TestResolveInvariants(t *testing.T) {
 	}
 	total := 12
 
-	sizes, _, err := resolve(total, len(specs), extentAt(specs))
+	sizes, _, err := ResolveExtents(total, specs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -143,11 +143,5 @@ func TestResolveInvariants(t *testing.T) {
 	}
 	if sum != total {
 		t.Fatalf("expected total %d, got %d", total, sum)
-	}
-}
-
-func extentAt(specs []ExtentConstraint) func(int) (ExtentConstraint, error) {
-	return func(index int) (ExtentConstraint, error) {
-		return specs[index], nil
 	}
 }

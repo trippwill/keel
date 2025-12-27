@@ -1,28 +1,65 @@
 package keel
 
-// ExtentResolver distributes a total number of cells across slot extents.
-// It returns per-slot sizes and the minimum required total, or an error.
-// The extentAt callback is invoked for each index as needed.
-type ExtentResolver func(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error)
-
 // RowResolver distributes width across slots for horizontal splits.
-// It mirrors the allocation rules used by containers.
-func RowResolver(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error) {
-	return resolve(total, count, extentAt)
+//
+// Arguments:
+//
+//	total:    The total width to distribute.
+//	container: The Container whose slots will be allocated.
+//
+// Returns:
+//   - Per-slot widths ([]int)
+//   - Minimum required total (int)
+//   - Error, if allocation fails
+//
+// This function mirrors the allocation rules used by containers. The slot extents are determined by calling Slot(i).GetExtent() on the container.
+func RowResolver(total int, container Container) ([]int, int, error) {
+	extents, err := GetContainerExtents(container)
+	if err != nil {
+		return nil, 0, err
+	}
+	return ResolveExtents(total, extents)
 }
 
 // ColResolver distributes height across slots for vertical splits.
-// It mirrors the allocation rules used by containers.
-func ColResolver(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error) {
-	return resolve(total, count, extentAt)
+//
+// Arguments:
+//
+//	total:    The total height to distribute.
+//	container: The Container whose slots will be allocated.
+//
+// Returns:
+//   - Per-slot heights ([]int)
+//   - Minimum required total (int)
+//   - Error, if allocation fails
+//
+// This function mirrors the allocation rules used by containers. The slot extents are determined by calling Slot(i).GetExtent() on the container.
+func ColResolver(total int, container Container) ([]int, int, error) {
+	extents, err := GetContainerExtents(container)
+	if err != nil {
+		return nil, 0, err
+	}
+	return ResolveExtents(total, extents)
 }
 
-// resolve distributes a total number of cells across slot extents.
-func resolve(total int, count int, extentAt func(index int) (ExtentConstraint, error)) ([]int, int, error) {
+// ResolveExtents distributes a total number of cells across slot extents.
+//
+// Arguments:
+//
+//	total:    The total number of cells to distribute.
+//	extents: The ExtentConstraints for each slot.
+//
+// Returns:
+//   - Per-slot sizes ([]int)
+//   - Minimum required total (int)
+//   - Error, if allocation fails
+func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 	if total < 0 {
 		return nil, 0, &ConfigError{Reason: ErrInvalidTotal}
 	}
-	if count == 0 {
+
+	count := len(extents)
+	if count <= 0 {
 		return nil, 0, &ConfigError{Reason: ErrEmptyExtents}
 	}
 
@@ -31,11 +68,9 @@ func resolve(total int, count int, extentAt func(index int) (ExtentConstraint, e
 	required := 0
 	hasFlex := false
 
+	// Pass 1: validate and allocate fixed extents, accumulate flex units and min sizes.
 	for i := range count {
-		spec, err := extentAt(i)
-		if err != nil {
-			return nil, required, err
-		}
+		spec := extents[i]
 		if spec.Units <= 0 {
 			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentUnits}
 		}
@@ -64,6 +99,7 @@ func resolve(total int, count int, extentAt func(index int) (ExtentConstraint, e
 		return nil, required, ErrExtentTooSmall
 	}
 
+	// Pass 2: distribute leftover space to flex extents.
 	leftover := total - required
 	if !hasFlex {
 		if leftover > 0 {
@@ -74,10 +110,7 @@ func resolve(total int, count int, extentAt func(index int) (ExtentConstraint, e
 
 	remainder := leftover
 	for i := range count {
-		spec, err := extentAt(i)
-		if err != nil {
-			return nil, required, err
-		}
+		spec := extents[i]
 		if spec.Kind != ExtentFlex {
 			continue
 		}
@@ -91,10 +124,7 @@ func resolve(total int, count int, extentAt func(index int) (ExtentConstraint, e
 
 	if remainder > 0 {
 		for i := 0; i < count && remainder > 0; i++ {
-			spec, err := extentAt(i)
-			if err != nil {
-				return nil, required, err
-			}
+			spec := extents[i]
 			if spec.Kind != ExtentFlex {
 				continue
 			}
@@ -104,4 +134,23 @@ func resolve(total int, count int, extentAt func(index int) (ExtentConstraint, e
 	}
 
 	return sizes, required, nil
+}
+
+// GetContainerExtents retrieves the extents of all slots in a container.
+//
+// Returns:
+// - Slice of ExtentConstraint for each slot
+// - Error, if any slot is nil
+func GetContainerExtents(container Container) ([]ExtentConstraint, error) {
+	extents := make([]ExtentConstraint, container.Len())
+	for i := range extents {
+		slot, ok := container.Slot(i)
+		if !ok || slot == nil {
+			return nil, &SlotError{Index: i, Reason: ErrNilSlot}
+		}
+
+		extents[i] = slot.GetExtent()
+	}
+
+	return extents, nil
 }

@@ -7,6 +7,29 @@ import (
 	"github.com/trippwill/chiplog/keel"
 )
 
+type benchContainer struct {
+	slots []keel.Renderable
+}
+
+func (c *benchContainer) Len() int {
+	return len(c.slots)
+}
+
+func (c *benchContainer) Slot(i int) (keel.Renderable, bool) {
+	if i < 0 || i >= len(c.slots) {
+		return nil, false
+	}
+	return c.slots[i], true
+}
+
+func (c *benchContainer) GetAxis() keel.Axis {
+	return keel.AxisHorizontal
+}
+
+func (c *benchContainer) GetExtent() keel.ExtentConstraint {
+	return keel.FlexMin(1, 1)
+}
+
 type benchRenderable struct {
 	extent keel.ExtentConstraint
 }
@@ -20,15 +43,13 @@ func BenchmarkResolveExtentAt(b *testing.B) {
 		b.Run(fmt.Sprintf("n=%d", count), func(b *testing.B) {
 			slots, required := benchSlots(count)
 			total := required + count
-			extentAt := func(index int) (keel.ExtentConstraint, error) {
-				return slots[index].GetExtent(), nil
-			}
+			container := &benchContainer{slots: slots}
 
 			b.ReportAllocs()
 			b.ResetTimer()
 
 			for b.Loop() {
-				if _, _, err := keel.RowResolver(total, count, extentAt); err != nil {
+				if _, _, err := keel.RowResolver(total, container); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -61,7 +82,7 @@ func BenchmarkResolveCachedExtents(b *testing.B) {
 func benchSlots(count int) ([]keel.Renderable, int) {
 	slots := make([]keel.Renderable, count)
 	required := 0
-	for i := 0; i < count; i++ {
+	for i := range count {
 		var extent keel.ExtentConstraint
 		if i%3 == 0 {
 			extent = keel.Fixed(3)
