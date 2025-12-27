@@ -78,13 +78,13 @@ func ClipHeight(height int) ClipConstraint {
 }
 
 // GetExtent implements the [Renderable] interface.
-func (e *ExtentConstraint) GetExtent() ExtentConstraint {
-	return *e
+func (e ExtentConstraint) GetExtent() ExtentConstraint {
+	return e
 }
 
 // GetClip implements the [Block] interface.
-func (mc *ClipConstraint) GetClip() ClipConstraint {
-	return *mc
+func (mc ClipConstraint) GetClip() ClipConstraint {
+	return mc
 }
 
 // RenderInfo describes the allocated space for a [Block] render pass.
