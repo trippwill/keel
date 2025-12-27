@@ -42,6 +42,34 @@ func TestRenderSplit_AllocTooSmall(t *testing.T) {
 	}
 }
 
+func TestRenderSplit_EmptySlots(t *testing.T) {
+	cases := []struct {
+		name   string
+		layout Renderable
+	}{
+		{name: "row", layout: Row(FlexUnit())},
+		{name: "col", layout: Col(FlexUnit())},
+	}
+
+	ctx := Context[string]{
+		Width:           10,
+		Height:          3,
+		ContentProvider: makeContentProvider(""),
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Render(tc.layout, ctx)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != "" {
+				t.Fatalf("expected empty output, got %q", got)
+			}
+		})
+	}
+}
+
 func TestRenderSplit_SlotChromeTooTall(t *testing.T) {
 	split := Row(
 		FlexUnit(),

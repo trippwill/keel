@@ -20,12 +20,6 @@ func TestAllocateValidation(t *testing.T) {
 			err:   ErrConfigurationInvalid,
 		},
 		{
-			name:  "empty specs",
-			total: 1,
-			specs: nil,
-			err:   ErrConfigurationInvalid,
-		},
-		{
 			name:  "units must be positive",
 			total: 1,
 			specs: []ExtentConstraint{{Kind: ExtentFixed, Units: 0}},
@@ -62,6 +56,31 @@ func TestAllocateValidation(t *testing.T) {
 			_, _, err := ResolveExtents(tc.total, tc.specs)
 			if !errors.Is(err, tc.err) {
 				t.Fatalf("expected %v, got %v", tc.err, err)
+			}
+		})
+	}
+}
+
+func TestResolveEmptyExtents(t *testing.T) {
+	cases := []struct {
+		name  string
+		total int
+	}{
+		{name: "zero total", total: 0},
+		{name: "positive total", total: 10},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, required, err := ResolveExtents(tc.total, nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(got) != 0 {
+				t.Fatalf("expected empty sizes, got %v", got)
+			}
+			if required != 0 {
+				t.Fatalf("expected required 0, got %d", required)
 			}
 		})
 	}

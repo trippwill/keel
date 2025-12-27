@@ -14,14 +14,10 @@ var (
 
 // Split creates a new split with the given axis and extent.
 // Slots are stored as references; mutating slots after creation affects the Split.
-// Panics on invalid axis or empty slots.
+// Panics on invalid axis.
 func Split(axis Axis, extent ExtentConstraint, slots ...Renderable) *SplitSpec {
 	if (axis != AxisHorizontal) && (axis != AxisVertical) {
 		panic(ErrInvalidAxis)
-	}
-
-	if len(slots) == 0 {
-		panic(ErrEmptySlots)
 	}
 
 	return &SplitSpec{
@@ -33,14 +29,12 @@ func Split(axis Axis, extent ExtentConstraint, slots ...Renderable) *SplitSpec {
 
 // Row creates a new horizontal split.
 // Slots are stored as references; mutating slots after creation affects the Split.
-// Panics on empty slots.
 func Row(size ExtentConstraint, slots ...Renderable) *SplitSpec {
 	return Split(AxisHorizontal, size, slots...)
 }
 
 // Col creates a new vertical split.
 // Slots are stored as references; mutating slots after creation affects the Split.
-// Panics on empty slots.
 func Col(size ExtentConstraint, slots ...Renderable) *SplitSpec {
 	return Split(AxisVertical, size, slots...)
 }

@@ -60,7 +60,7 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 
 	count := len(extents)
 	if count <= 0 {
-		return nil, 0, &ConfigError{Reason: ErrEmptyExtents}
+		return []int{}, 0, nil
 	}
 
 	sizes := make([]int, count)
