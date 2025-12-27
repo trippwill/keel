@@ -1,6 +1,8 @@
 package keel
 
-import gloss "github.com/charmbracelet/lipgloss"
+import (
+	gloss "github.com/charmbracelet/lipgloss"
+)
 
 // KeelID is a comparable type used as a stable identifier for blocks and resources.
 type KeelID comparable
@@ -26,6 +28,9 @@ type Context[KID KeelID] struct {
 
 	// Provides string content for a [Block].
 	ContentProvider ContentProvider[KID]
+
+	// Optional logger for render events.
+	Logger LoggerFunc
 }
 
 // WithSize returns a copy of the context with updated dimensions.
@@ -35,6 +40,7 @@ func (c Context[KID]) WithSize(width, height int) Context[KID] {
 		Height:          height,
 		StyleProvider:   c.StyleProvider,
 		ContentProvider: c.ContentProvider,
+		Logger:          c.Logger,
 	}
 }
 
@@ -45,6 +51,7 @@ func (c Context[KID]) WithWidth(width int) Context[KID] {
 		Height:          c.Height,
 		StyleProvider:   c.StyleProvider,
 		ContentProvider: c.ContentProvider,
+		Logger:          c.Logger,
 	}
 }
 
@@ -55,6 +62,7 @@ func (c Context[KID]) WithHeight(height int) Context[KID] {
 		Height:          height,
 		StyleProvider:   c.StyleProvider,
 		ContentProvider: c.ContentProvider,
+		Logger:          c.Logger,
 	}
 }
 
@@ -65,6 +73,7 @@ func (c Context[KID]) WithStyleProvider(p StyleProvider[KID]) Context[KID] {
 		Height:          c.Height,
 		StyleProvider:   p,
 		ContentProvider: c.ContentProvider,
+		Logger:          c.Logger,
 	}
 }
 
@@ -75,5 +84,17 @@ func (c Context[KID]) WithContentProvider(p ContentProvider[KID]) Context[KID] {
 		Height:          c.Height,
 		StyleProvider:   c.StyleProvider,
 		ContentProvider: p,
+		Logger:          c.Logger,
+	}
+}
+
+// WithLogger returns a copy of the context with the given logger.
+func (c Context[KID]) WithLogger(logger LoggerFunc) Context[KID] {
+	return Context[KID]{
+		Width:           c.Width,
+		Height:          c.Height,
+		StyleProvider:   c.StyleProvider,
+		ContentProvider: c.ContentProvider,
+		Logger:          logger,
 	}
 }

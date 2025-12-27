@@ -74,6 +74,26 @@ func main() {
 There is a runnable demo in `examples/dashboard` that uses the shared fixtures
 in `examples`.
 
+## Logging
+
+Keel can emit render logs through a context logger. Log events include container
+allocations, block renders, and render errors. Paths are slash-delimited slot
+indices rooted at `/` (e.g. `/0/1`).
+
+```go
+logger := keel.NewFileLogger(os.Stdout)
+ctx := keel.Context[string]{}.
+	WithSize(80, 24).
+	WithContentProvider(contentProvider).
+	WithStyleProvider(styleProvider).
+	WithLogger(logger.Log)
+
+out, err := keel.Render(layout, ctx)
+```
+
+The default message formats are available via `keel.LogEventFormats`, and you
+can supply any `LoggerFunc` to integrate with your own logging.
+
 ## Limitations
 
 Keel does not perform intrinsic measurement, constraint solving, or stateful

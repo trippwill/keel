@@ -13,6 +13,212 @@ func makeContentProvider(result string) func(string, RenderInfo) (string, error)
 	}
 }
 
+type dummyRenderable struct {
+	extent ExtentConstraint
+}
+
+func (d dummyRenderable) GetExtent() ExtentConstraint { return d.extent }
+
+type logEntry struct {
+	event LogEvent
+	path  string
+	msg   string
+}
+
+type flakyContainer struct {
+	axis  Axis
+	slots []Renderable
+	calls []int
+}
+
+func (c flakyContainer) GetExtent() ExtentConstraint { return FlexUnit() }
+
+func (c flakyContainer) GetAxis() Axis { return c.axis }
+
+func (c flakyContainer) Len() int { return len(c.slots) }
+
+func (c flakyContainer) Slot(index int) (Renderable, bool) {
+	if index < 0 || index >= len(c.slots) {
+		return nil, false
+	}
+	c.calls[index]++
+	if c.calls[index] > 1 {
+		return nil, true
+	}
+	return c.slots[index], true
+}
+
+func TestRender_UnknownRenderable(t *testing.T) {
+	ctx := Context[string]{Width: 1, Height: 1}
+	_, err := Render(dummyRenderable{extent: FlexUnit()}, ctx)
+	if !errors.Is(err, ErrUnknownRenderable) {
+		t.Fatalf("expected ErrUnknownRenderable, got %v", err)
+	}
+}
+
+func TestRenderContainer_Empty(t *testing.T) {
+	got, err := Render(Row(FlexUnit()), Context[string]{Width: 5, Height: 2})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "" {
+		t.Fatalf("expected empty output, got %q", got)
+	}
+}
+
+func TestRenderContainer_AllocTooSmallVertical(t *testing.T) {
+	split := Col(
+		FlexUnit(),
+		Panel(FlexMin(1, 3), "a"),
+		Panel(FlexMin(1, 3), "b"),
+	)
+
+	ctx := Context[string]{
+		Width:           2,
+		Height:          4,
+		ContentProvider: makeContentProvider(""),
+	}
+
+	_, err := Render(split, ctx)
+	var tooSmall *ExtentTooSmallError
+	if !errors.As(err, &tooSmall) {
+		t.Fatalf("expected ExtentTooSmallError, got %v", err)
+	}
+	if tooSmall.Axis != AxisVertical {
+		t.Fatalf("expected vertical axis, got %v", tooSmall.Axis)
+	}
+	if tooSmall.Source != "vertical split" {
+		t.Fatalf("expected source %q, got %q", "vertical split", tooSmall.Source)
+	}
+	if tooSmall.Reason != "allocation" {
+		t.Fatalf("expected reason %q, got %q", "allocation", tooSmall.Reason)
+	}
+}
+
+func TestRenderContainer_UnstableSlot(t *testing.T) {
+	container := flakyContainer{
+		axis:  AxisHorizontal,
+		slots: []Renderable{Panel(FlexUnit(), "a")},
+		calls: make([]int, 1),
+	}
+
+	_, err := Render(container, Context[string]{Width: 1, Height: 1})
+	var slotErr *SlotError
+	if !errors.As(err, &slotErr) {
+		t.Fatalf("expected SlotError, got %v", err)
+	}
+	if slotErr.Index != 0 {
+		t.Fatalf("expected index 0, got %d", slotErr.Index)
+	}
+	if !errors.Is(err, ErrNilSlot) {
+		t.Fatalf("expected ErrNilSlot")
+	}
+}
+
+func TestRenderContainer_InvalidAxis(t *testing.T) {
+	container := flakyContainer{
+		axis:  Axis(99),
+		slots: []Renderable{Panel(FlexUnit(), "a")},
+		calls: make([]int, 1),
+	}
+
+	_, err := RenderContainer(container, Context[string]{Width: 1, Height: 1})
+	if !errors.Is(err, ErrInvalidAxis) {
+		t.Fatalf("expected ErrInvalidAxis, got %v", err)
+	}
+}
+
+func TestRenderContainer_ResolverSlotError(t *testing.T) {
+	split := Row(FlexUnit(), nil)
+
+	_, err := Render(split, Context[string]{Width: 1, Height: 1})
+	var slotErr *SlotError
+	if !errors.As(err, &slotErr) {
+		t.Fatalf("expected SlotError, got %v", err)
+	}
+	if slotErr.Index != 0 {
+		t.Fatalf("expected index 0, got %d", slotErr.Index)
+	}
+	if !errors.Is(err, ErrNilSlot) {
+		t.Fatalf("expected ErrNilSlot")
+	}
+}
+
+func TestRender_LoggerEvents(t *testing.T) {
+	var entries []logEntry
+	logger := func(event LogEvent, path, msg string) {
+		entries = append(entries, logEntry{
+			event: event,
+			path:  path,
+			msg:   msg,
+		})
+	}
+
+	layout := Row(FlexUnit(),
+		Panel(FlexUnit(), "a"),
+	)
+	ctx := Context[string]{
+		Width:           3,
+		Height:          1,
+		ContentProvider: makeContentProvider(""),
+	}.WithLogger(logger)
+
+	_, err := Render(layout, ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(entries) < 2 {
+		t.Fatalf("expected at least 2 log entries, got %d", len(entries))
+	}
+
+	if entries[0].event != LogEventContainerAlloc {
+		t.Fatalf("expected container.alloc first, got %q", entries[0].event)
+	}
+	if entries[0].path != "/" {
+		t.Fatalf("expected root path, got %q", entries[0].path)
+	}
+
+	found := false
+	for _, entry := range entries {
+		if entry.event == LogEventBlockRender && entry.path == "/0" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected block.render for path /0")
+	}
+}
+
+func TestRender_LoggerError(t *testing.T) {
+	var entries []logEntry
+	logger := func(event LogEvent, path, msg string) {
+		entries = append(entries, logEntry{
+			event: event,
+			path:  path,
+			msg:   msg,
+		})
+	}
+
+	ctx := Context[string]{Width: 1, Height: 1}.WithLogger(logger)
+	_, err := Render(Panel(FlexUnit(), "a"), ctx)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	found := false
+	for _, entry := range entries {
+		if entry.event == LogEventRenderError {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected render.error entry")
+	}
+}
+
 func TestRenderSplit_AllocTooSmall(t *testing.T) {
 	split := Row(
 		FlexUnit(),
