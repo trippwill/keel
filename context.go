@@ -33,6 +33,16 @@ type Context[KID KeelID] struct {
 	Logger LoggerFunc
 }
 
+func NewContext[KID KeelID](width, height int, styleProvider StyleProvider[KID], contentProvider ContentProvider[KID]) Context[KID] {
+	return Context[KID]{
+		Width:           width,
+		Height:          height,
+		StyleProvider:   styleProvider,
+		ContentProvider: contentProvider,
+		Logger:          nil,
+	}
+}
+
 // WithSize returns a copy of the context with updated dimensions.
 func (c Context[KID]) WithSize(width, height int) Context[KID] {
 	return Context[KID]{
