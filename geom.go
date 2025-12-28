@@ -80,8 +80,8 @@ func (e ExtentConstraint) GetExtent() ExtentConstraint {
 
 // RenderInfo describes the allocated space for a [Block] render pass.
 type RenderInfo struct {
-	Width, Height               int            // Total allocated size
-	ContentWidth, ContentHeight int            // Inner content box size
-	FrameWidth, FrameHeight     int            // Total frame size (padding + border + margin)
-	Fit                         FitMode        // Fit mode for content
+	Width, Height               int     // Total allocated size
+	ContentWidth, ContentHeight int     // Inner content box size
+	FrameWidth, FrameHeight     int     // Total frame size (padding + border + margin)
+	Fit                         FitMode // Fit mode for content
 }

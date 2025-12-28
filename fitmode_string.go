@@ -5,6 +5,8 @@ package keel
 import "strconv"
 
 func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[FitExact-0]
 	_ = x[FitWrapClip-1]
@@ -18,8 +20,9 @@ const _FitMode_name = "ExactWrapClipWrapStrictClipOverflow"
 var _FitMode_index = [...]uint8{0, 5, 13, 23, 27, 35}
 
 func (i FitMode) String() string {
-	if i < 0 || i >= FitMode(len(_FitMode_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_FitMode_index)-1 {
 		return "FitMode(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _FitMode_name[_FitMode_index[i]:_FitMode_index[i+1]]
+	return _FitMode_name[_FitMode_index[idx]:_FitMode_index[idx+1]]
 }
