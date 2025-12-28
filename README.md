@@ -5,8 +5,8 @@ Deterministic spatial layout for discrete character buffers
 Keel is a deterministic layout engine for terminal applications. You describe a
 layout hierarchy, Keel deterministically allocates space along rows and
 columns, and panels render content and optional lipgloss styles. Rendering
-is strict: if frames or content (after clipping) don't fit the allocation, Keel
-returns an `ExtentTooSmallError`.
+is strict by default: if frames or content don't fit the allocation, Keel
+returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
 
 ## Concepts
 
@@ -14,7 +14,7 @@ returns an `ExtentTooSmallError`.
 - `Panel` is a block identified by a `KeelID`.
 - `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`) controls how space is
   allocated along the container axis.
-- `ClipConstraint` caps content size before rendering.
+- `FitMode` controls how content fits inside a panel.
 - `Context` provides size, `ContentProvider`, and `StyleProvider`.
 
 ## Example

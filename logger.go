@@ -20,7 +20,7 @@ const (
 // The map entries should be treated as read-only.
 var LogEventFormats = map[LogEvent]string{
 	LogEventContainerAlloc: "axis=%s total=%d slots=%d sizes=%v required=%d",
-	LogEventBlockRender:    "id=%v alloc=%dx%d frame=%dx%d content=%dx%d clip=%dx%d",
+	LogEventBlockRender:    "id=%v alloc=%dx%d frame=%dx%d content=%dx%d fit=%v",
 	LogEventRenderError:    "stage=%s err=%v",
 }
 

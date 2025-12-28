@@ -14,7 +14,7 @@ type StyleProvider[KID KeelID] func(id KID) *gloss.Style
 
 // ContentProvider returns content for the given block allocation.
 // Providers should respect ContentWidth/ContentHeight.
-// ClipConstraint will be applied after content is retrieved.
+// FitMode will be applied after content is retrieved.
 type ContentProvider[KID KeelID] func(id KID, info RenderInfo) (string, error)
 
 // Context provides rendering inputs for a render pass, including allocation

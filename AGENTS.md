@@ -18,7 +18,7 @@
 - Follow `gofmt` output and standard Go conventions; exported symbols must have doc comments.
 - Keep error strings lowercase and concise; wrap with typed errors from `keel/err.go`.
 - Treat styles from `StyleProvider` as immutable; cached styles are expected.
-- `ContentProvider` receives the block ID plus `RenderInfo`; ensure content respects the content box and clip.
+- `ContentProvider` receives the block ID plus `RenderInfo`; ensure content respects the content box and the block's `FitMode`.
 - Prefer small, composable helpers for allocation and rendering steps.
 
 ## Testing Guidelines
