@@ -3,7 +3,7 @@
 //go:generate stringer -type=FitMode -trimprefix=Fit
 package keel
 
-// Axis represents a layout axis used by containers to split space.
+// Axis represents a layout axis used by stacks to split space.
 type Axis uint8
 
 const (
@@ -13,7 +13,12 @@ const (
 	AxisVertical Axis = 1
 )
 
-// FitMode represents how content should fit within a [Block]'s content box.
+// Size describes a width/height pair in cells.
+type Size struct {
+	Width, Height int
+}
+
+// FitMode represents how content should fit within a [FrameSpec]'s content box.
 type FitMode uint8
 
 const (
@@ -41,9 +46,9 @@ const (
 	ExtentFlex
 )
 
-// ExtentConstraint defines how much total space a renderable should take along an axis.
-// For blocks, this is the allocation for content plus any frame (padding, border, margin).
-// For containers, this is the space available to distribute across slots.
+// ExtentConstraint defines how much total space a [Spec] should take along an axis.
+// For frames, this is the allocation for content plus any frame (padding, border, margin).
+// For stacks, this is the space available to distribute across slots.
 type ExtentConstraint struct {
 	Kind     ExtentKind
 	Units    int
@@ -69,13 +74,13 @@ func Flex(units int) ExtentConstraint {
 }
 
 // FlexMin creates a flexible [ExtentConstraint] with the given units in flex space,
-// and reserves at least minReserved total cells along the container axis.
+// and reserves at least minReserved total cells along the stack axis.
 func FlexMin(units int, minReserved int) ExtentConstraint {
 	return ExtentConstraint{ExtentFlex, units, minReserved, 0}
 }
 
 // FlexMax creates a flexible [ExtentConstraint] with the given units in flex space,
-// and caps at maxCells total cells along the container axis.
+// and caps at maxCells total cells along the stack axis.
 func FlexMax(units int, maxCells int) ExtentConstraint {
 	return ExtentConstraint{ExtentFlex, units, 0, maxCells}
 }
@@ -86,12 +91,12 @@ func FlexMinMax(units int, minReserved int, maxCells int) ExtentConstraint {
 	return ExtentConstraint{ExtentFlex, units, minReserved, maxCells}
 }
 
-// GetExtent implements the [Renderable] interface.
-func (e ExtentConstraint) GetExtent() ExtentConstraint {
+// Extent implements the [Spec] interface.
+func (e ExtentConstraint) Extent() ExtentConstraint {
 	return e
 }
 
-// RenderInfo describes the allocated space for a [Block] render pass.
+// RenderInfo describes the allocated space for a [FrameSpec] render pass.
 type RenderInfo struct {
 	Width, Height               int     // Total allocated size
 	ContentWidth, ContentHeight int     // Inner content box size

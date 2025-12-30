@@ -10,11 +10,11 @@ var (
 	ErrConfigurationInvalid = errors.New("configuration invalid")
 	// ErrContentProviderMissing indicates a missing content provider.
 	ErrContentProviderMissing = errors.New("content provider missing")
-	// ErrUnknownBlockID indicates a content/style request for an unknown ID.
-	ErrUnknownBlockID = errors.New("unknown block id")
+	// ErrUnknownFrameID indicates a content/style request for an unknown ID.
+	ErrUnknownFrameID = errors.New("unknown frame id")
 	// ErrInvalidAxis indicates an invalid axis value.
 	ErrInvalidAxis = errors.New("invalid axis")
-	// ErrEmptySlots indicates a container with no slots.
+	// ErrEmptySlots indicates a stack with no slots.
 	ErrEmptySlots = errors.New("empty slots")
 	// ErrInvalidTotal indicates an invalid total allocation.
 	ErrInvalidTotal = errors.New("invalid total")
@@ -34,8 +34,8 @@ var (
 	ErrInvalidExtentMax = errors.New("invalid extent max")
 	// ErrNilSlot indicates a nil slot entry.
 	ErrNilSlot = errors.New("nil slot")
-	// ErrUnknownRenderable indicates a Renderable with an unsupported type.
-	ErrUnknownRenderable = errors.New("unknown renderable")
+	// ErrUnknownSpec indicates a Spec with an unsupported type.
+	ErrUnknownSpec = errors.New("unknown spec")
 	// ErrExtentTooSmall indicates insufficient extent for an allocation.
 	ErrExtentTooSmall = errors.New("extent too small")
 )
@@ -99,7 +99,7 @@ func (e *ConfigError) Is(target error) bool {
 	return errors.Is(e.Reason, target)
 }
 
-// ContentProviderMissingError indicates a missing content provider for a block ID.
+// ContentProviderMissingError indicates a missing content provider for a frame ID.
 // It wraps ErrContentProviderMissing for errors.Is checks.
 type ContentProviderMissingError struct {
 	ID any
@@ -113,18 +113,18 @@ func (e *ContentProviderMissingError) Unwrap() error {
 	return ErrContentProviderMissing
 }
 
-// UnknownBlockIDError indicates a request for an unknown block ID.
-// It wraps ErrUnknownBlockID for errors.Is checks.
-type UnknownBlockIDError struct {
+// UnknownFrameIDError indicates a request for an unknown frame ID.
+// It wraps ErrUnknownFrameID for errors.Is checks.
+type UnknownFrameIDError struct {
 	ID any
 }
 
-func (e *UnknownBlockIDError) Error() string {
-	return fmt.Sprintf("%s: %v", ErrUnknownBlockID, e.ID)
+func (e *UnknownFrameIDError) Error() string {
+	return fmt.Sprintf("%s: %v", ErrUnknownFrameID, e.ID)
 }
 
-func (e *UnknownBlockIDError) Unwrap() error {
-	return ErrUnknownBlockID
+func (e *UnknownFrameIDError) Unwrap() error {
+	return ErrUnknownFrameID
 }
 
 // ExtentError describes a validation issue for a specific extent.

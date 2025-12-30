@@ -11,13 +11,13 @@ import (
 func TestFileLoggerWritesEntry(t *testing.T) {
 	var buf bytes.Buffer
 	logger := NewFileLogger(&buf)
-	logger.Log(LogEventBlockRender, "0/1", "ok")
+	logger.Log(LogEventFrameRender, "0/1", "ok")
 
 	got := buf.String()
 	if got == "" {
 		t.Fatalf("expected output")
 	}
-	if !strings.HasPrefix(got, "block.render\t0/1\tok\n") {
+	if !strings.HasPrefix(got, "frame.render\t0/1\tok\n") {
 		t.Fatalf("unexpected output: %q", got)
 	}
 }

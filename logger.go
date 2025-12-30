@@ -11,25 +11,25 @@ import (
 type LogEvent uint8
 
 const (
-	LogEventContainerAlloc LogEvent = iota
-	LogEventBlockRender
+	LogEventStackAlloc LogEvent = iota
+	LogEventFrameRender
 	LogEventRenderError
 )
 
 // LogEventFormats provides default formats for log messages.
 // The map entries should be treated as read-only.
 var LogEventFormats = map[LogEvent]string{
-	LogEventContainerAlloc: "axis=%s total=%d slots=%d sizes=%v required=%d",
-	LogEventBlockRender:    "id=%v alloc=%dx%d frame=%dx%d content=%dx%d fit=%v",
-	LogEventRenderError:    "stage=%s err=%v",
+	LogEventStackAlloc:  "axis=%s total=%d slots=%d sizes=%v required=%d",
+	LogEventFrameRender: "id=%v alloc=%dx%d frame=%dx%d content=%dx%d fit=%v",
+	LogEventRenderError: "stage=%s err=%v",
 }
 
 func (e LogEvent) String() string {
 	switch e {
-	case LogEventContainerAlloc:
-		return "container.alloc"
-	case LogEventBlockRender:
-		return "block.render"
+	case LogEventStackAlloc:
+		return "stack.alloc"
+	case LogEventFrameRender:
+		return "frame.render"
 	case LogEventRenderError:
 		return "render.error"
 	default:

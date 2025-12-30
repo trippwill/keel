@@ -32,11 +32,11 @@ run = "go build ./..."
 run = "go test ./... -count=1"
 
 [tasks.bench]
-run = "go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem"
+run = "go test ./... -bench='BenchmarkRender|BenchmarkArrange' -benchmem"
 
 [tasks.bench-report]
 run = """
-go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem -count=6 > current_bench_result.txt
+go test ./... -bench='BenchmarkRender|BenchmarkArrange' -benchmem -count=6 > current_bench_result.txt
 ./scripts/bench-report.sh
 """
 

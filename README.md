@@ -4,18 +4,19 @@ Deterministic spatial layout for discrete character buffers
 
 Keel is a deterministic layout engine for terminal applications. You describe a
 layout hierarchy, Keel deterministically allocates space along rows and
-columns, and panels render content and optional lipgloss styles. Rendering
+columns, and frames render content and optional lipgloss styles. Rendering
 is strict by default: if frames or content don't fit the allocation, Keel
 returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
 
 ## Concepts
 
-- `Row` / `Col` define containers that split space along an axis.
-- `Panel` is a block identified by a `KeelID`.
+- `Row` / `Col` define stacks that split space along an axis.
+- `Panel` is a frame identified by a `KeelID`.
 - `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`, `FlexMax`, `FlexMinMax`) controls how space is
-  allocated along the container axis.
-- `FitMode` controls how content fits inside a panel.
-- `Context` provides size, `ContentProvider`, and `StyleProvider`.
+  allocated along the stack axis.
+- `Size` describes the available width/height for arrange/render.
+- `FitMode` controls how content fits inside a frame.
+- `Context` provides `ContentProvider`, `StyleProvider`, and logging.
 - Flex max caps are soft: if all flex slots hit their max and space remains,
   the remainder is distributed ignoring max caps.
 
@@ -41,8 +42,6 @@ func main() {
 	)
 
 	ctx := keel.Context[string]{
-		Width:  80,
-		Height: 24,
 		ContentProvider: func(id string, _ keel.RenderInfo) (string, error) {
 			switch id {
 			case "header":
@@ -52,7 +51,7 @@ func main() {
 			case "body":
 				return "content", nil
 			default:
-				return "", &keel.UnknownBlockIDError{ID: id}
+				return "", &keel.UnknownFrameIDError{ID: id}
 			}
 		},
 		StyleProvider: func(id string) *gloss.Style {
@@ -63,8 +62,9 @@ func main() {
 			return nil
 		},
 	}
+	size := keel.Size{Width: 80, Height: 24}
 
-	out, err := keel.Render(layout, ctx)
+	out, err := keel.RenderSpec(ctx, layout, size)
 	if err != nil {
 		panic(err)
 	}
@@ -85,21 +85,39 @@ layout := keel.Row(keel.FlexUnit(),
 )
 ```
 
+## Arranged layouts
+
+If you render repeatedly at the same size, arrange once and re-use the arranged
+tree until the width/height or layout changes.
+
+```go
+size := keel.Size{Width: 80, Height: 24}
+layout, err := keel.Arrange(ctx, layout, size)
+if err != nil {
+	panic(err)
+}
+
+out, err := keel.Render(ctx, layout)
+if err != nil {
+	panic(err)
+}
+```
+
 ## Logging
 
-Keel can emit render logs through a context logger. Log events include container
-allocations, block renders, and render errors. Paths are slash-delimited slot
+Keel can emit render logs through a context logger. Log events include stack
+allocations, frame renders, and render errors. Paths are slash-delimited slot
 indices rooted at `/` (e.g. `/0/1`).
 
 ```go
 logger := keel.NewFileLogger(os.Stdout)
 ctx := keel.Context[string]{}.
-	WithSize(80, 24).
 	WithContentProvider(contentProvider).
 	WithStyleProvider(styleProvider).
 	WithLogger(logger.Log)
+size := keel.Size{Width: 80, Height: 24}
 
-out, err := keel.Render(layout, ctx)
+out, err := keel.RenderSpec(ctx, layout, size)
 ```
 
 The default message formats are available via `keel.LogEventFormats`, and you
@@ -112,7 +130,7 @@ rendering. It exists solely to map hierarchical layout intent onto terminal
 geometry.
 
 1. No intrinsic sizing
-   - Panels don't ask "how big do you want to be?"
+   - Frames don't ask "how big do you want to be?"
 
 2. No focus / input model
    - Keel never knows about: cursor, focus, keybindings
@@ -137,7 +155,7 @@ geometry.
 Or standard Go commands:
 
 - `go test ./...`
-- `go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem`
+- `go test ./... -bench='BenchmarkRender|BenchmarkArrange' -benchmem`
 - `go generate ./...`
 - `go fmt ./...`
 - `go vet ./...`

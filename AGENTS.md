@@ -2,12 +2,12 @@
 
 ## Scope & Structure
 - This repo is a standalone Go module for the layout/render engine `keel` (`go.mod`).
-- Core APIs live in `renderable.go`, `panel.go`, `split.go`, `geom.go`, `resolver.go`, `render.go`, `debug.go`, and `err.go`.
+- Core APIs live in `spec.go`, `panel.go`, `split.go`, `geom.go`, `arrange.go`, `render.go`, `debug.go`, and `err.go`.
 - Examples and shared fixtures live in the `examples` subpackage; a runnable demo is in `examples/dashboard`.
 
 ## Build, Test, and Development Commands
 - `go test ./...` runs unit tests for the module.
-- `go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem` runs benchmarks.
+- `go test ./... -bench='BenchmarkRender|BenchmarkArrange' -benchmem` runs benchmarks.
 - `go generate ./...` regenerates stringer output for enums (see `geom.go`).
 - `mise run demo` runs the example dashboard.
 - `mise run test` runs tests with cache disabled.
@@ -20,7 +20,7 @@
 - Follow `gofmt` output and standard Go conventions; exported symbols must have doc comments.
 - Keep error strings lowercase and concise; wrap with typed errors from `keel/err.go`.
 - Treat styles from `StyleProvider` as immutable; cached styles are expected.
-- `ContentProvider` receives the block ID plus `RenderInfo`; ensure content respects the content box and the block's `FitMode`.
+- `ContentProvider` receives the frame ID plus `RenderInfo`; ensure content respects the content box and the frame's `FitMode`.
 - Prefer small, composable helpers for allocation and rendering steps.
 
 ## Testing Guidelines
