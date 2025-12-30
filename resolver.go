@@ -83,43 +83,9 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 	}
 
 	sizes := make([]int, count)
-	required := 0
-	hasFlex := false
-	hasFlexMax := false
-
-	// Pass 1: validate and allocate fixed extents, accumulate flex units and min sizes.
-	for i := range count {
-		spec := extents[i]
-		if spec.Units <= 0 {
-			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentUnits}
-		}
-		if spec.MinCells < 0 {
-			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMinCells}
-		}
-		if spec.MaxCells < 0 {
-			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMaxCells}
-		}
-
-		switch spec.Kind {
-		case ExtentFixed:
-			if spec.Units < spec.MinCells {
-				return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMin}
-			}
-			sizes[i] = spec.Units
-		case ExtentFlex:
-			if spec.MaxCells > 0 && spec.MaxCells < spec.MinCells {
-				return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMax}
-			}
-			sizes[i] = spec.MinCells
-			hasFlex = true
-			if spec.MaxCells > 0 {
-				hasFlexMax = true
-			}
-		default:
-			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentKind}
-		}
-
-		required += sizes[i]
+	required, flexUnits, hasFlex, hasFlexMax, err := seedSizes(sizes, extents)
+	if err != nil {
+		return nil, required, err
 	}
 
 	if required > total {
@@ -137,41 +103,102 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 
 	if leftover > 0 {
 		if hasFlexMax {
-			remaining := distributeFlexWithMax(sizes, extents, leftover)
+			flexSpecs := collectFlexSpecs(extents)
+			remaining := distributeFlexWithMax(sizes, flexSpecs, leftover)
 			if remaining > 0 {
-				distributeFlexIgnoringMax(sizes, extents, remaining)
+				distributeFlexIgnoringMax(sizes, extents, flexUnits, remaining)
 			}
 		} else {
-			distributeFlexIgnoringMax(sizes, extents, leftover)
+			distributeFlexIgnoringMax(sizes, extents, flexUnits, leftover)
 		}
 	}
 
 	return sizes, required, nil
 }
 
-func distributeFlexWithMax(sizes []int, extents []ExtentConstraint, leftover int) int {
-	if leftover <= 0 {
-		return 0
+type flexSpec struct {
+	index int
+	units int
+	max   int
+}
+
+func seedSizes(sizes []int, extents []ExtentConstraint) (int, int, bool, bool, error) {
+	required := 0
+	flexUnits := 0
+	hasFlex := false
+	hasFlexMax := false
+
+	for i := range extents {
+		spec := extents[i]
+		if spec.Units <= 0 {
+			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentUnits}
+		}
+		if spec.MinCells < 0 {
+			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMinCells}
+		}
+		if spec.MaxCells < 0 {
+			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMaxCells}
+		}
+
+		switch spec.Kind {
+		case ExtentFixed:
+			if spec.Units < spec.MinCells {
+				return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMin}
+			}
+			sizes[i] = spec.Units
+		case ExtentFlex:
+			if spec.MaxCells > 0 && spec.MaxCells < spec.MinCells {
+				return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMax}
+			}
+			sizes[i] = spec.MinCells
+			flexUnits += spec.Units
+			hasFlex = true
+			if spec.MaxCells > 0 {
+				hasFlexMax = true
+			}
+		default:
+			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentKind}
+		}
+
+		required += sizes[i]
 	}
 
-	flexIndices := make([]int, 0, len(extents))
-	unlimited := false
-	capacity := 0
+	return required, flexUnits, hasFlex, hasFlexMax, nil
+}
+
+func collectFlexSpecs(extents []ExtentConstraint) []flexSpec {
+	flexSpecs := make([]flexSpec, 0, len(extents))
 	for i, spec := range extents {
 		if spec.Kind != ExtentFlex {
 			continue
 		}
-		flexIndices = append(flexIndices, i)
-		if spec.MaxCells == 0 {
+		flexSpecs = append(flexSpecs, flexSpec{
+			index: i,
+			units: spec.Units,
+			max:   spec.MaxCells,
+		})
+	}
+	return flexSpecs
+}
+
+func distributeFlexWithMax(sizes []int, flexSpecs []flexSpec, leftover int) int {
+	if leftover <= 0 {
+		return 0
+	}
+
+	unlimited := false
+	capacity := 0
+	for _, spec := range flexSpecs {
+		if spec.max == 0 {
 			unlimited = true
 			continue
 		}
-		if sizes[i] < spec.MaxCells {
-			capacity += spec.MaxCells - sizes[i]
+		if sizes[spec.index] < spec.max {
+			capacity += spec.max - sizes[spec.index]
 		}
 	}
 
-	if len(flexIndices) == 0 {
+	if len(flexSpecs) == 0 {
 		return leftover
 	}
 
@@ -183,64 +210,65 @@ func distributeFlexWithMax(sizes []int, extents []ExtentConstraint, leftover int
 	}
 
 	if amount > 0 {
-		remaining += distributeFlexCapped(sizes, extents, flexIndices, amount)
+		remaining += distributeFlexCapped(sizes, flexSpecs, amount)
 	}
 
 	return remaining
 }
 
-func distributeFlexCapped(sizes []int, extents []ExtentConstraint, flexIndices []int, amount int) int {
+func distributeFlexCapped(sizes []int, flexSpecs []flexSpec, amount int) int {
 	remaining := amount
-	active := make([]int, 0, len(flexIndices))
-	for _, i := range flexIndices {
-		spec := extents[i]
-		if spec.MaxCells == 0 || sizes[i] < spec.MaxCells {
+	active := make([]int, 0, len(flexSpecs))
+	for i, spec := range flexSpecs {
+		if spec.max == 0 || sizes[spec.index] < spec.max {
 			active = append(active, i)
 		}
 	}
 
 	for remaining > 0 && len(active) > 0 {
 		totalUnits := 0
-		for _, i := range active {
-			totalUnits += extents[i].Units
+		for _, specIndex := range active {
+			totalUnits += flexSpecs[specIndex].units
 		}
 
 		distributed := 0
-		for _, i := range active {
+		for _, specIndex := range active {
+			spec := flexSpecs[specIndex]
 			add := 0
 			if totalUnits > 0 {
-				add = remaining * extents[i].Units / totalUnits
+				add = remaining * spec.units / totalUnits
 			}
-			cap := maxFlexAdd(extents[i], sizes[i], remaining)
+			cap := maxFlexAdd(spec.max, sizes[spec.index], remaining)
 			if add > cap {
 				add = cap
 			}
 			if add > 0 {
-				sizes[i] += add
+				sizes[spec.index] += add
 				distributed += add
 			}
 		}
 		remaining -= distributed
 
 		if remaining > 0 {
-			for _, i := range active {
+			for _, specIndex := range active {
 				if remaining == 0 {
 					break
 				}
-				cap := maxFlexAdd(extents[i], sizes[i], remaining)
+				spec := flexSpecs[specIndex]
+				cap := maxFlexAdd(spec.max, sizes[spec.index], remaining)
 				if cap <= 0 {
 					continue
 				}
-				sizes[i]++
+				sizes[spec.index]++
 				remaining--
 			}
 		}
 
 		next := active[:0]
-		for _, i := range active {
-			spec := extents[i]
-			if spec.MaxCells == 0 || sizes[i] < spec.MaxCells {
-				next = append(next, i)
+		for _, specIndex := range active {
+			spec := flexSpecs[specIndex]
+			if spec.max == 0 || sizes[spec.index] < spec.max {
+				next = append(next, specIndex)
 			}
 		}
 		active = next
@@ -249,26 +277,19 @@ func distributeFlexCapped(sizes []int, extents []ExtentConstraint, flexIndices [
 	return remaining
 }
 
-func maxFlexAdd(spec ExtentConstraint, size int, remaining int) int {
-	if spec.MaxCells == 0 {
+func maxFlexAdd(max int, size int, remaining int) int {
+	if max == 0 {
 		return remaining
 	}
-	if size >= spec.MaxCells {
+	if size >= max {
 		return 0
 	}
-	return spec.MaxCells - size
+	return max - size
 }
 
-func distributeFlexIgnoringMax(sizes []int, extents []ExtentConstraint, leftover int) {
+func distributeFlexIgnoringMax(sizes []int, extents []ExtentConstraint, flexUnits int, leftover int) {
 	if leftover <= 0 {
 		return
-	}
-
-	flexUnits := 0
-	for _, spec := range extents {
-		if spec.Kind == ExtentFlex {
-			flexUnits += spec.Units
-		}
 	}
 	if flexUnits == 0 {
 		return
