@@ -221,3 +221,37 @@ func TestResolveSoftMaxExceedsWhenNeeded(t *testing.T) {
 		t.Fatalf("expected total 7, got %d", sizes[0]+sizes[1])
 	}
 }
+
+func TestResolveMaxDistributesRemainder(t *testing.T) {
+	specs := []ExtentConstraint{
+		{Kind: ExtentFlex, Units: 1, MaxCells: 4},
+		{Kind: ExtentFlex, Units: 1, MaxCells: 4},
+	}
+
+	sizes, _, err := ResolveExtents(5, specs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []int{3, 2}
+	if !reflect.DeepEqual(sizes, want) {
+		t.Fatalf("expected %v, got %v", want, sizes)
+	}
+}
+
+func TestResolveFlexMinMaxHonorsBounds(t *testing.T) {
+	specs := []ExtentConstraint{
+		FlexMinMax(1, 2, 4),
+		FlexUnit(),
+	}
+
+	sizes, _, err := ResolveExtents(6, specs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sizes[0] != 4 {
+		t.Fatalf("expected max 4 for first slot, got %d", sizes[0])
+	}
+	if sizes[1] != 2 {
+		t.Fatalf("expected remaining 2 for second slot, got %d", sizes[1])
+	}
+}
