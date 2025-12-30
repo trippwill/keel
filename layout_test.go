@@ -2,7 +2,7 @@ package keel
 
 import "testing"
 
-func TestResolveBuildsRects(t *testing.T) {
+func TestArrangeBuildsRects(t *testing.T) {
 	layout := Row(FlexUnit(),
 		Panel(Fixed(3), "a"),
 		Col(FlexUnit(),
@@ -13,21 +13,21 @@ func TestResolveBuildsRects(t *testing.T) {
 
 	ctx := Context[string]{}
 	size := Size{Width: 10, Height: 5}
-	resolved, err := Resolve[string](ctx, layout, size)
+	arranged, err := Arrange(ctx, layout, size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if resolved.Root.Rect.Width != 10 || resolved.Root.Rect.Height != 5 {
-		t.Fatalf("expected root 10x5, got %dx%d", resolved.Root.Rect.Width, resolved.Root.Rect.Height)
+	if arranged.Root.Rect.Width != 10 || arranged.Root.Rect.Height != 5 {
+		t.Fatalf("expected root 10x5, got %dx%d", arranged.Root.Rect.Width, arranged.Root.Rect.Height)
 	}
 
-	if len(resolved.Root.Children) != 2 {
-		t.Fatalf("expected 2 children, got %d", len(resolved.Root.Children))
+	if len(arranged.Root.Slots) != 2 {
+		t.Fatalf("expected 2 slots, got %d", len(arranged.Root.Slots))
 	}
 
-	left := resolved.Root.Children[0]
-	right := resolved.Root.Children[1]
+	left := arranged.Root.Slots[0]
+	right := arranged.Root.Slots[1]
 
 	if left.Rect.X != 0 || left.Rect.Width != 3 || left.Rect.Height != 5 {
 		t.Fatalf("unexpected left rect: %+v", left.Rect)
@@ -36,12 +36,12 @@ func TestResolveBuildsRects(t *testing.T) {
 		t.Fatalf("unexpected right rect: %+v", right.Rect)
 	}
 
-	if len(right.Children) != 2 {
-		t.Fatalf("expected 2 children under right, got %d", len(right.Children))
+	if len(right.Slots) != 2 {
+		t.Fatalf("expected 2 slots under right, got %d", len(right.Slots))
 	}
 
-	top := right.Children[0]
-	bottom := right.Children[1]
+	top := right.Slots[0]
+	bottom := right.Slots[1]
 	if top.Rect.Y != 0 || top.Rect.Height != 2 {
 		t.Fatalf("unexpected top rect: %+v", top.Rect)
 	}
@@ -50,7 +50,7 @@ func TestResolveBuildsRects(t *testing.T) {
 	}
 }
 
-func TestRenderResolvedMatchesRender(t *testing.T) {
+func TestRenderMatchesRenderSpec(t *testing.T) {
 	layout := Row(FlexUnit(),
 		Panel(Fixed(2), "a"),
 		Panel(FlexUnit(), "b"),
@@ -64,25 +64,25 @@ func TestRenderResolvedMatchesRender(t *testing.T) {
 			case "b":
 				return "bbb", nil
 			default:
-				return "", &UnknownBlockIDError{ID: id}
+				return "", &UnknownFrameIDError{ID: id}
 			}
 		},
 	}
 	size := Size{Width: 5, Height: 1}
 
-	want, err := Render(ctx, layout, size)
+	want, err := RenderSpec(ctx, layout, size)
 	if err != nil {
 		t.Fatalf("unexpected render error: %v", err)
 	}
 
-	resolved, err := Resolve[string](ctx, layout, size)
+	arranged, err := Arrange(ctx, layout, size)
 	if err != nil {
-		t.Fatalf("unexpected resolve error: %v", err)
+		t.Fatalf("unexpected arrange error: %v", err)
 	}
 
-	got, err := RenderResolved(ctx, resolved)
+	got, err := Render(ctx, arranged)
 	if err != nil {
-		t.Fatalf("unexpected resolved render error: %v", err)
+		t.Fatalf("unexpected layout render error: %v", err)
 	}
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)

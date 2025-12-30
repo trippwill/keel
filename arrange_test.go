@@ -65,7 +65,7 @@ func TestAllocateValidation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, err := ResolveExtents(tc.total, tc.specs)
+			_, _, err := ArrangeExtents(tc.total, tc.specs)
 			if !errors.Is(err, tc.err) {
 				t.Fatalf("expected %v, got %v", tc.err, err)
 			}
@@ -73,7 +73,7 @@ func TestAllocateValidation(t *testing.T) {
 	}
 }
 
-func TestResolveEmptyExtents(t *testing.T) {
+func TestArrangeEmptyExtents(t *testing.T) {
 	cases := []struct {
 		name  string
 		total int
@@ -84,7 +84,7 @@ func TestResolveEmptyExtents(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, required, err := ResolveExtents(tc.total, nil)
+			got, required, err := ArrangeExtents(tc.total, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -164,7 +164,7 @@ func TestAllocateDistribution(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, _, err := ResolveExtents(tc.total, tc.specs)
+			got, _, err := ArrangeExtents(tc.total, tc.specs)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -175,7 +175,7 @@ func TestAllocateDistribution(t *testing.T) {
 	}
 }
 
-func TestResolveInvariants(t *testing.T) {
+func TestArrangeInvariants(t *testing.T) {
 	specs := []ExtentConstraint{
 		{Kind: ExtentFixed, Units: 2, MinCells: 2},
 		{Kind: ExtentFlex, Units: 1, MinCells: 1},
@@ -184,7 +184,7 @@ func TestResolveInvariants(t *testing.T) {
 	}
 	total := 12
 
-	sizes, _, err := ResolveExtents(total, specs)
+	sizes, _, err := ArrangeExtents(total, specs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -204,13 +204,13 @@ func TestResolveInvariants(t *testing.T) {
 	}
 }
 
-func TestResolveSoftMaxExceedsWhenNeeded(t *testing.T) {
+func TestArrangeSoftMaxExceedsWhenNeeded(t *testing.T) {
 	specs := []ExtentConstraint{
 		{Kind: ExtentFlex, Units: 1, MaxCells: 2},
 		{Kind: ExtentFlex, Units: 1, MaxCells: 2},
 	}
 
-	sizes, _, err := ResolveExtents(7, specs)
+	sizes, _, err := ArrangeExtents(7, specs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -222,13 +222,13 @@ func TestResolveSoftMaxExceedsWhenNeeded(t *testing.T) {
 	}
 }
 
-func TestResolveMaxDistributesRemainder(t *testing.T) {
+func TestArrangeMaxDistributesRemainder(t *testing.T) {
 	specs := []ExtentConstraint{
 		{Kind: ExtentFlex, Units: 1, MaxCells: 4},
 		{Kind: ExtentFlex, Units: 1, MaxCells: 4},
 	}
 
-	sizes, _, err := ResolveExtents(5, specs)
+	sizes, _, err := ArrangeExtents(5, specs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -238,13 +238,13 @@ func TestResolveMaxDistributesRemainder(t *testing.T) {
 	}
 }
 
-func TestResolveFlexMinMaxHonorsBounds(t *testing.T) {
+func TestArrangeFlexMinMaxHonorsBounds(t *testing.T) {
 	specs := []ExtentConstraint{
 		FlexMinMax(1, 2, 4),
 		FlexUnit(),
 	}
 
-	sizes, _, err := ResolveExtents(6, specs)
+	sizes, _, err := ArrangeExtents(6, specs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -17,7 +17,7 @@ func BenchmarkRenderExampleSplit(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := keel.Render(ctx, layout, size); err != nil {
+		if _, err := keel.RenderSpec(ctx, layout, size); err != nil {
 			b.Fatal(err)
 		}
 	}

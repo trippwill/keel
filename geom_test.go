@@ -51,7 +51,7 @@ func TestExtentConstraintHelpers(t *testing.T) {
 
 func TestExtentConstraintGetExtent(t *testing.T) {
 	spec := FlexMinMax(2, 1, 4)
-	if got := spec.GetExtent(); got != spec {
+	if got := spec.Extent(); got != spec {
 		t.Fatalf("expected %v, got %v", spec, got)
 	}
 }

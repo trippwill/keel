@@ -1,67 +1,46 @@
 package keel
 
-// RowResolver distributes width across slots for horizontal splits.
+// ArrangeStack distributes a total number of cells across a stack.
 //
 // Arguments:
 //
-//	total:    The total width to distribute.
-//	container: The Container whose slots will be allocated.
+//	total: The total cells to distribute.
+//	stack: The [StackSpec] whose slots will be allocated.
 //
 // Returns:
-//   - Per-slot widths ([]int)
+//   - Per-slot sizes ([]int)
 //   - Minimum required total (int)
 //   - Error, if allocation fails
 //
-// This function mirrors the allocation rules used by containers. The slot extents are determined by calling Slot(i).GetExtent() on the container.
-func RowResolver(total int, container Container) ([]int, int, error) {
-	extents, err := GetContainerExtents(container)
+// This function mirrors the allocation rules used by stacks. The slot extents are determined by calling Slot(i).Extent() on the stack.
+func ArrangeStack(total int, stack StackSpec) ([]int, int, error) {
+	extents, err := GetStackExtents(stack)
 	if err != nil {
 		return nil, 0, err
 	}
-	return ResolveExtents(total, extents)
+	return ArrangeExtents(total, extents)
 }
 
-// ColResolver distributes height across slots for vertical splits.
-//
-// Arguments:
-//
-//	total:    The total height to distribute.
-//	container: The Container whose slots will be allocated.
-//
-// Returns:
-//   - Per-slot heights ([]int)
-//   - Minimum required total (int)
-//   - Error, if allocation fails
-//
-// This function mirrors the allocation rules used by containers. The slot extents are determined by calling Slot(i).GetExtent() on the container.
-func ColResolver(total int, container Container) ([]int, int, error) {
-	extents, err := GetContainerExtents(container)
-	if err != nil {
-		return nil, 0, err
-	}
-	return ResolveExtents(total, extents)
-}
-
-// GetContainerExtents retrieves the extents of all slots in a container.
+// GetStackExtents retrieves the extents of all slots in a stack.
 //
 // Returns:
 // - Slice of ExtentConstraint for each slot
 // - Error, if any slot is nil
-func GetContainerExtents(container Container) ([]ExtentConstraint, error) {
-	extents := make([]ExtentConstraint, container.Len())
+func GetStackExtents(stack StackSpec) ([]ExtentConstraint, error) {
+	extents := make([]ExtentConstraint, stack.Len())
 	for i := range extents {
-		slot, ok := container.Slot(i)
+		slot, ok := stack.Slot(i)
 		if !ok || slot == nil {
 			return nil, &SlotError{Index: i, Reason: ErrNilSlot}
 		}
 
-		extents[i] = slot.GetExtent()
+		extents[i] = slot.Extent()
 	}
 
 	return extents, nil
 }
 
-// ResolveExtents distributes a total number of cells across slot extents.
+// ArrangeExtents distributes a total number of cells across slot extents.
 //
 // Arguments:
 //
@@ -72,7 +51,7 @@ func GetContainerExtents(container Container) ([]ExtentConstraint, error) {
 //   - Per-slot sizes ([]int)
 //   - Minimum required total (int)
 //   - Error, if allocation fails
-func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
+func ArrangeExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 	if total < 0 {
 		return nil, 0, &ConfigError{Reason: ErrInvalidTotal}
 	}

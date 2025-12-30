@@ -6,7 +6,7 @@ import (
 )
 
 // ExampleSplit returns the example layout hierarchy used across demos and tests.
-func ExampleSplit() keel.Renderable {
+func ExampleSplit() keel.Spec {
 	return keel.Col(keel.FlexUnit(),
 		keel.PanelClip(keel.Fixed(3), "header"),
 		keel.Row(keel.FlexMin(1, 6),
@@ -21,12 +21,12 @@ func ExampleSplit() keel.Renderable {
 	)
 }
 
-// ExampleResolvedSplit resolves the example layout at the given size.
-func ExampleResolvedSplit(width, height int) (keel.Resolved[string], error) {
+// ExampleLayoutSplit arranges the example layout at the given size.
+func ExampleLayoutSplit(width, height int) (keel.Layout[string], error) {
 	layout := ExampleSplit()
 	ctx := keel.Context[string]{}
 	size := keel.Size{Width: width, Height: height}
-	return keel.Resolve[string](ctx, layout, size)
+	return keel.Arrange(ctx, layout, size)
 }
 
 // ExampleSplitContentProvider returns content for the example layout.
@@ -45,7 +45,7 @@ func ExampleSplitContentProvider(id string, _ keel.RenderInfo) (string, error) {
 	case "help":
 		return "?: help  q: quit", nil
 	default:
-		return "", &keel.UnknownBlockIDError{ID: id}
+		return "", &keel.UnknownFrameIDError{ID: id}
 	}
 }
 

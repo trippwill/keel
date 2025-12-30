@@ -4,26 +4,26 @@ import (
 	gloss "github.com/charmbracelet/lipgloss"
 )
 
-// KeelID is a comparable type used as a stable identifier for blocks and resources.
+// KeelID is a comparable type used as a stable identifier for frames and resources.
 type KeelID comparable
 
-// StyleProvider returns a style for the given block ID. Nil means "no style".
+// StyleProvider returns a style for the given frame ID. Nil means "no style".
 // Returned styles are treated as immutable and are safe to cache; the renderer
 // copies them before mutation.
 type StyleProvider[KID KeelID] func(id KID) *gloss.Style
 
-// ContentProvider returns content for the given block allocation.
+// ContentProvider returns content for the given frame allocation.
 // Providers should respect ContentWidth/ContentHeight.
 // FitMode will be applied after content is retrieved.
 type ContentProvider[KID KeelID] func(id KID, info RenderInfo) (string, error)
 
 // Context provides rendering inputs for a render pass, including the
-// content/style providers used by blocks.
+// content/style providers used by frames.
 type Context[KID KeelID] struct {
-	// Provides style information for a [Block].
+	// Provides style information for a [FrameSpec].
 	StyleProvider StyleProvider[KID]
 
-	// Provides string content for a [Block].
+	// Provides string content for a [FrameSpec].
 	ContentProvider ContentProvider[KID]
 
 	// Optional logger for render events.
@@ -36,6 +36,10 @@ func NewContext[KID KeelID](styleProvider StyleProvider[KID], contentProvider Co
 		ContentProvider: contentProvider,
 		Logger:          nil,
 	}
+}
+
+func DefaultContext[KID KeelID]() Context[KID] {
+	return Context[KID]{}
 }
 
 // WithStyleProvider returns a copy of the context with the given style provider.

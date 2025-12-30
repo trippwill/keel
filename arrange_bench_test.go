@@ -7,49 +7,49 @@ import (
 	"github.com/trippwill/keel"
 )
 
-type benchContainer struct {
-	slots []keel.Renderable
+type benchStack struct {
+	slots []keel.Spec
 }
 
-func (c *benchContainer) Len() int {
-	return len(c.slots)
+func (s *benchStack) Len() int {
+	return len(s.slots)
 }
 
-func (c *benchContainer) Slot(i int) (keel.Renderable, bool) {
-	if i < 0 || i >= len(c.slots) {
+func (s *benchStack) Slot(i int) (keel.Spec, bool) {
+	if i < 0 || i >= len(s.slots) {
 		return nil, false
 	}
-	return c.slots[i], true
+	return s.slots[i], true
 }
 
-func (c *benchContainer) GetAxis() keel.Axis {
+func (s *benchStack) Axis() keel.Axis {
 	return keel.AxisHorizontal
 }
 
-func (c *benchContainer) GetExtent() keel.ExtentConstraint {
+func (s *benchStack) Extent() keel.ExtentConstraint {
 	return keel.FlexMin(1, 1)
 }
 
-type benchRenderable struct {
+type benchSpec struct {
 	extent keel.ExtentConstraint
 }
 
-func (b benchRenderable) GetExtent() keel.ExtentConstraint {
+func (b benchSpec) Extent() keel.ExtentConstraint {
 	return b.extent
 }
 
-func BenchmarkResolveContainer(b *testing.B) {
+func BenchmarkArrangeStack(b *testing.B) {
 	for _, count := range []int{3, 8, 32, 128} {
 		b.Run(fmt.Sprintf("n=%d", count), func(b *testing.B) {
 			slots, required := benchSlots(count)
 			total := required + count
-			container := &benchContainer{slots: slots}
+			stack := &benchStack{slots: slots}
 
 			b.ReportAllocs()
 			b.ResetTimer()
 
 			for b.Loop() {
-				if _, _, err := keel.RowResolver(total, container); err != nil {
+				if _, _, err := keel.ArrangeStack(total, stack); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -57,8 +57,8 @@ func BenchmarkResolveContainer(b *testing.B) {
 	}
 }
 
-func benchSlots(count int) ([]keel.Renderable, int) {
-	slots := make([]keel.Renderable, count)
+func benchSlots(count int) ([]keel.Spec, int) {
+	slots := make([]keel.Spec, count)
 	required := 0
 	for i := range count {
 		var extent keel.ExtentConstraint
@@ -67,7 +67,7 @@ func benchSlots(count int) ([]keel.Renderable, int) {
 		} else {
 			extent = keel.FlexMin(1, 1)
 		}
-		slots[i] = benchRenderable{extent: extent}
+		slots[i] = benchSpec{extent: extent}
 		switch extent.Kind {
 		case keel.ExtentFixed:
 			required += extent.Units

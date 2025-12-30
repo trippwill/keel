@@ -2,14 +2,14 @@ package keel
 
 import "errors"
 
-// NodeKind identifies the kind of node in a resolved layout tree.
+// NodeKind identifies the kind of node in an arranged layout tree.
 type NodeKind uint8
 
 const (
-	// NodeContainer represents a container with child allocations.
-	NodeContainer NodeKind = iota
-	// NodeBlock represents a block that renders content.
-	NodeBlock
+	// NodeStack represents a stack with slot allocations.
+	NodeStack NodeKind = iota
+	// NodeFrame represents a frame that renders content.
+	NodeFrame
 )
 
 // Rect describes an allocated rectangle in the render space.
@@ -18,77 +18,77 @@ type Rect struct {
 	Width, Height int
 }
 
-// Resolved holds a layout tree resolved to concrete allocations.
-type Resolved[KID KeelID] struct {
+// Layout holds a layout tree arranged to concrete allocations.
+type Layout[KID KeelID] struct {
 	Width, Height int
-	Root          ResolvedNode[KID]
+	Root          LayoutNode[KID]
 }
 
-// ResolvedNode represents a resolved layout node.
-type ResolvedNode[KID KeelID] struct {
-	Kind     NodeKind
-	Axis     Axis
-	Rect     Rect
-	Block    Block[KID]
-	Children []ResolvedNode[KID]
+// LayoutNode represents an arranged layout node.
+type LayoutNode[KID KeelID] struct {
+	Kind  NodeKind
+	Axis  Axis
+	Rect  Rect
+	Frame FrameSpec[KID]
+	Slots []LayoutNode[KID]
 }
 
-// Resolve resolves a layout tree into concrete allocations for the given size.
-func Resolve[KID KeelID](ctx Context[KID], renderable Renderable, size Size) (Resolved[KID], error) {
+// Arrange arranges a [Spec] tree into concrete allocations for the given size.
+func Arrange[KID KeelID](ctx Context[KID], spec Spec, size Size) (Layout[KID], error) {
 	path := ""
 	if ctx.Logger != nil {
 		path = "/"
 	}
 	rect := Rect{X: 0, Y: 0, Width: size.Width, Height: size.Height}
-	root, err := resolveWithPath[KID](renderable, rect, path, ctx.Logger)
+	root, err := arrangeWithPath[KID](spec, rect, path, ctx.Logger)
 	if err != nil {
-		return Resolved[KID]{}, err
+		return Layout[KID]{}, err
 	}
-	return Resolved[KID]{
+	return Layout[KID]{
 		Width:  size.Width,
 		Height: size.Height,
 		Root:   root,
 	}, nil
 }
 
-func resolveWithPath[KID KeelID](renderable Renderable, rect Rect, path string, logger LoggerFunc) (ResolvedNode[KID], error) {
-	switch n := renderable.(type) {
-	case Container:
-		return resolveContainerWithPath[KID](n, rect, path, logger)
-	case Block[KID]:
-		return ResolvedNode[KID]{
-			Kind:  NodeBlock,
+func arrangeWithPath[KID KeelID](spec Spec, rect Rect, path string, logger LoggerFunc) (LayoutNode[KID], error) {
+	switch n := spec.(type) {
+	case StackSpec:
+		return arrangeStackWithPath[KID](n, rect, path, logger)
+	case FrameSpec[KID]:
+		return LayoutNode[KID]{
+			Kind:  NodeFrame,
 			Rect:  rect,
-			Block: n,
+			Frame: n,
 		}, nil
 	default:
-		err := &ConfigError{Reason: ErrUnknownRenderable}
+		err := &ConfigError{Reason: ErrUnknownSpec}
 		logError(logger, path, "dispatch", err)
-		return ResolvedNode[KID]{}, err
+		return LayoutNode[KID]{}, err
 	}
 }
 
-func resolveContainerWithPath[KID KeelID](container Container, rect Rect, path string, logger LoggerFunc) (ResolvedNode[KID], error) {
-	length := container.Len()
+func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, logger LoggerFunc) (LayoutNode[KID], error) {
+	length := stack.Len()
 	if length <= 0 {
-		return ResolvedNode[KID]{
-			Kind:     NodeContainer,
-			Rect:     rect,
-			Children: nil,
+		return LayoutNode[KID]{
+			Kind:  NodeStack,
+			Rect:  rect,
+			Slots: nil,
 		}, nil
 	}
 
-	axis := container.GetAxis()
+	axis := stack.Axis()
 	if axis != AxisHorizontal && axis != AxisVertical {
 		err := &ConfigError{Reason: ErrInvalidAxis}
-		logError(logger, path, "container.axis", err)
-		return ResolvedNode[KID]{}, err
+		logError(logger, path, "stack.axis", err)
+		return LayoutNode[KID]{}, err
 	}
 
-	extents, err := GetContainerExtents(container)
+	extents, err := GetStackExtents(stack)
 	if err != nil {
-		logError(logger, path, "container.slot", err)
-		return ResolvedNode[KID]{}, err
+		logError(logger, path, "stack.slot", err)
+		return LayoutNode[KID]{}, err
 	}
 
 	total := rect.Width
@@ -96,7 +96,7 @@ func resolveContainerWithPath[KID KeelID](container Container, rect Rect, path s
 		total = rect.Height
 	}
 
-	sizes, required, err := ResolveExtents(total, extents)
+	sizes, required, err := ArrangeExtents(total, extents)
 	if err != nil {
 		if errors.Is(err, ErrExtentTooSmall) {
 			source := "horizontal split"
@@ -111,14 +111,14 @@ func resolveContainerWithPath[KID KeelID](container Container, rect Rect, path s
 				Reason: "allocation",
 			}
 		}
-		logError(logger, path, "container.resolve", err)
-		return ResolvedNode[KID]{}, err
+		logError(logger, path, "stack.arrange", err)
+		return LayoutNode[KID]{}, err
 	}
 
 	logf(
 		logger,
 		path,
-		LogEventContainerAlloc,
+		LogEventStackAlloc,
 		axis.String(),
 		total,
 		len(sizes),
@@ -126,44 +126,44 @@ func resolveContainerWithPath[KID KeelID](container Container, rect Rect, path s
 		required,
 	)
 
-	children := make([]ResolvedNode[KID], length)
+	slots := make([]LayoutNode[KID], length)
 	offset := 0
 	for i, size := range sizes {
-		slot, ok := container.Slot(i)
+		slot, ok := stack.Slot(i)
 		if !ok || slot == nil {
 			err := &SlotError{Index: i, Reason: ErrNilSlot}
-			logError(logger, path, "container.slot", err)
-			return ResolvedNode[KID]{}, err
+			logError(logger, path, "stack.slot", err)
+			return LayoutNode[KID]{}, err
 		}
 
-		childRect := rect
+		slotRect := rect
 		if axis == AxisHorizontal {
-			childRect.X += offset
-			childRect.Width = size
+			slotRect.X += offset
+			slotRect.Width = size
 		} else {
-			childRect.Y += offset
-			childRect.Height = size
+			slotRect.Y += offset
+			slotRect.Height = size
 		}
 
-		childPath := path
+		slotPath := path
 		if logger != nil {
-			childPath = appendPath(path, i)
+			slotPath = appendPath(path, i)
 		}
 
-		child, err := resolveWithPath[KID](slot, childRect, childPath, logger)
+		slotNode, err := arrangeWithPath[KID](slot, slotRect, slotPath, logger)
 		if err != nil {
-			logError(logger, path, "container.render", err)
-			return ResolvedNode[KID]{}, err
+			logError(logger, path, "stack.render", err)
+			return LayoutNode[KID]{}, err
 		}
 
-		children[i] = child
+		slots[i] = slotNode
 		offset += size
 	}
 
-	return ResolvedNode[KID]{
-		Kind:     NodeContainer,
-		Axis:     axis,
-		Rect:     rect,
-		Children: children,
+	return LayoutNode[KID]{
+		Kind:  NodeStack,
+		Axis:  axis,
+		Rect:  rect,
+		Slots: slots,
 	}, nil
 }

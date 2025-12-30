@@ -5,28 +5,28 @@ import (
 	"testing"
 )
 
-type testContainer struct {
+type testStack struct {
 	axis  Axis
-	slots []Renderable
+	slots []Spec
 }
 
-func (c testContainer) GetAxis() Axis { return c.axis }
+func (s testStack) Axis() Axis { return s.axis }
 
-func (c testContainer) Len() int { return len(c.slots) }
+func (s testStack) Len() int { return len(s.slots) }
 
-func (c testContainer) Slot(index int) (Renderable, bool) {
-	if index < 0 || index >= len(c.slots) {
+func (s testStack) Slot(index int) (Spec, bool) {
+	if index < 0 || index >= len(s.slots) {
 		return nil, false
 	}
-	return c.slots[index], true
+	return s.slots[index], true
 }
 
-func (c testContainer) GetExtent() ExtentConstraint { return FlexUnit() }
+func (s testStack) Extent() ExtentConstraint { return FlexUnit() }
 
-func TestRowResolverEmptyContainer(t *testing.T) {
-	container := testContainer{axis: AxisHorizontal}
+func TestArrangeStackEmptyStack(t *testing.T) {
+	stack := testStack{axis: AxisHorizontal}
 
-	sizes, required, err := RowResolver(10, container)
+	sizes, required, err := ArrangeStack(10, stack)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -38,10 +38,10 @@ func TestRowResolverEmptyContainer(t *testing.T) {
 	}
 }
 
-func TestColResolverEmptyContainer(t *testing.T) {
-	container := testContainer{axis: AxisVertical}
+func TestArrangeStackEmptyStackVertical(t *testing.T) {
+	stack := testStack{axis: AxisVertical}
 
-	sizes, required, err := ColResolver(10, container)
+	sizes, required, err := ArrangeStack(10, stack)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -53,13 +53,13 @@ func TestColResolverEmptyContainer(t *testing.T) {
 	}
 }
 
-func TestRowResolverNilSlot(t *testing.T) {
-	container := testContainer{
+func TestArrangeStackNilChild(t *testing.T) {
+	stack := testStack{
 		axis:  AxisHorizontal,
-		slots: []Renderable{nil},
+		slots: []Spec{nil},
 	}
 
-	_, _, err := RowResolver(10, container)
+	_, _, err := ArrangeStack(10, stack)
 	var slotErr *SlotError
 	if !errors.As(err, &slotErr) {
 		t.Fatalf("expected SlotError, got %v", err)
@@ -72,15 +72,15 @@ func TestRowResolverNilSlot(t *testing.T) {
 	}
 }
 
-func TestRenderContainerInvalidAxis(t *testing.T) {
-	container := testContainer{
+func TestRenderStackInvalidAxis(t *testing.T) {
+	stack := testStack{
 		axis:  Axis(99),
-		slots: []Renderable{Panel(FlexUnit(), "a")},
+		slots: []Spec{Panel(FlexUnit(), "a")},
 	}
 
 	ctx := Context[string]{}
 	size := Size{Width: 10, Height: 1}
-	_, err := RenderContainer(ctx, container, size)
+	_, err := RenderStackSpec(ctx, stack, size)
 	if !errors.Is(err, ErrInvalidAxis) {
 		t.Fatalf("expected ErrInvalidAxis, got %v", err)
 	}
