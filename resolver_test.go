@@ -32,9 +32,21 @@ func TestAllocateValidation(t *testing.T) {
 			err:   ErrConfigurationInvalid,
 		},
 		{
+			name:  "content max non-negative",
+			total: 1,
+			specs: []ExtentConstraint{{Kind: ExtentFlex, Units: 1, MaxCells: -1}},
+			err:   ErrConfigurationInvalid,
+		},
+		{
 			name:  "fixed must cover content min",
 			total: 10,
 			specs: []ExtentConstraint{{Kind: ExtentFixed, Units: 1, MinCells: 2}},
+			err:   ErrConfigurationInvalid,
+		},
+		{
+			name:  "max must cover min",
+			total: 10,
+			specs: []ExtentConstraint{{Kind: ExtentFlex, Units: 1, MinCells: 3, MaxCells: 2}},
 			err:   ErrConfigurationInvalid,
 		},
 		{
@@ -121,6 +133,33 @@ func TestAllocateDistribution(t *testing.T) {
 			},
 			want: []int{2, 6, 2},
 		},
+		{
+			name:  "max caps flex distribution",
+			total: 10,
+			specs: []ExtentConstraint{
+				{Kind: ExtentFlex, Units: 1, MaxCells: 3},
+				{Kind: ExtentFlex, Units: 1},
+			},
+			want: []int{3, 7},
+		},
+		{
+			name:  "soft max releases when needed",
+			total: 10,
+			specs: []ExtentConstraint{
+				{Kind: ExtentFlex, Units: 1, MaxCells: 3},
+				{Kind: ExtentFlex, Units: 1, MaxCells: 3},
+			},
+			want: []int{5, 5},
+		},
+		{
+			name:  "fixed ignores max",
+			total: 5,
+			specs: []ExtentConstraint{
+				{Kind: ExtentFixed, Units: 2, MaxCells: 1},
+				{Kind: ExtentFlex, Units: 1},
+			},
+			want: []int{2, 3},
+		},
 	}
 
 	for _, tc := range cases {
@@ -162,5 +201,23 @@ func TestResolveInvariants(t *testing.T) {
 	}
 	if sum != total {
 		t.Fatalf("expected total %d, got %d", total, sum)
+	}
+}
+
+func TestResolveSoftMaxExceedsWhenNeeded(t *testing.T) {
+	specs := []ExtentConstraint{
+		{Kind: ExtentFlex, Units: 1, MaxCells: 2},
+		{Kind: ExtentFlex, Units: 1, MaxCells: 2},
+	}
+
+	sizes, _, err := ResolveExtents(7, specs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sizes[0] <= specs[0].MaxCells || sizes[1] <= specs[1].MaxCells {
+		t.Fatalf("expected soft max to be exceeded, got %v", sizes)
+	}
+	if sizes[0]+sizes[1] != 7 {
+		t.Fatalf("expected total 7, got %d", sizes[0]+sizes[1])
 	}
 }

@@ -2,37 +2,37 @@ goos: linux
 goarch: amd64
 pkg: github.com/trippwill/keel
 cpu: Intel(R) Core(TM) Ultra 5 228V
-BenchmarkRenderExampleSplit-8   	    6954	    168757 ns/op	   41785 B/op	     745 allocs/op
-BenchmarkRenderExampleSplit-8   	    9282	    144527 ns/op	   38558 B/op	     745 allocs/op
-BenchmarkRenderExampleSplit-8   	    7310	    162416 ns/op	   41158 B/op	     745 allocs/op
-BenchmarkRenderExampleSplit-8   	    7840	    150011 ns/op	   37070 B/op	     745 allocs/op
-BenchmarkRenderExampleSplit-8   	    7822	    151787 ns/op	   38723 B/op	     745 allocs/op
-BenchmarkRenderExampleSplit-8   	    8257	    141094 ns/op	   37690 B/op	     745 allocs/op
-BenchmarkResolveContainer/n=3-8 	19171336	        79.12 ns/op	     104 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=3-8 	13007414	        83.40 ns/op	     104 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=3-8 	16549660	        80.88 ns/op	     104 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=3-8 	15078675	        84.78 ns/op	     104 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=3-8 	14482029	        84.60 ns/op	     104 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=3-8 	13316210	        83.69 ns/op	     104 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=8-8 	 8586375	       130.5 ns/op	     256 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=8-8 	 8875021	       128.0 ns/op	     256 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=8-8 	 8644736	       129.5 ns/op	     256 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=8-8 	 9252325	       129.3 ns/op	     256 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=8-8 	 9063598	       126.5 ns/op	     256 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=8-8 	 8980436	       128.8 ns/op	     256 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=32-8         	 3405078	       355.7 ns/op	    1024 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=32-8         	 3415574	       350.3 ns/op	    1024 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=32-8         	 3387661	       352.8 ns/op	    1024 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=32-8         	 3375272	       352.8 ns/op	    1024 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=32-8         	 3371460	       351.0 ns/op	    1024 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=32-8         	 3434427	       348.9 ns/op	    1024 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=128-8        	 1000000	      1287 ns/op	    4096 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=128-8        	  929194	      1270 ns/op	    4096 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=128-8        	  808771	      1287 ns/op	    4096 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=128-8        	  916912	      1296 ns/op	    4096 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=128-8        	  948452	      1277 ns/op	    4096 B/op	       2 allocs/op
-BenchmarkResolveContainer/n=128-8        	  896616	      1286 ns/op	    4096 B/op	       2 allocs/op
+BenchmarkRenderExampleSplit-8   	    7164	    147707 ns/op	   45026 B/op	     745 allocs/op
+BenchmarkRenderExampleSplit-8   	    8187	    140350 ns/op	   38854 B/op	     745 allocs/op
+BenchmarkRenderExampleSplit-8   	    8677	    141035 ns/op	   40751 B/op	     745 allocs/op
+BenchmarkRenderExampleSplit-8   	    8844	    151598 ns/op	   40529 B/op	     745 allocs/op
+BenchmarkRenderExampleSplit-8   	    8862	    139909 ns/op	   38582 B/op	     745 allocs/op
+BenchmarkRenderExampleSplit-8   	    8322	    145371 ns/op	   40742 B/op	     745 allocs/op
+BenchmarkResolveContainer/n=3-8 	19980358	        80.48 ns/op	     120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=3-8 	12127878	        83.45 ns/op	     120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=3-8 	14871414	        79.45 ns/op	     120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=3-8 	15702363	        82.47 ns/op	     120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=3-8 	14922046	        81.79 ns/op	     120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=3-8 	15241647	        78.83 ns/op	     120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=8-8 	 8880018	       132.3 ns/op	     320 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=8-8 	 8629180	       137.2 ns/op	     320 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=8-8 	 8752128	       135.4 ns/op	     320 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=8-8 	 8598612	       133.5 ns/op	     320 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=8-8 	 8792451	       133.1 ns/op	     320 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=8-8 	 9174699	       131.6 ns/op	     320 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=32-8         	 2961807	       412.7 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=32-8         	 2937808	       406.8 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=32-8         	 2914875	       409.3 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=32-8         	 2898138	       412.2 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=32-8         	 2977932	       406.6 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=32-8         	 2949267	       407.0 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=128-8        	  756075	      1649 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=128-8        	  689911	      1651 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=128-8        	  763395	      1667 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=128-8        	  704826	      1674 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=128-8        	  737122	      1672 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkResolveContainer/n=128-8        	  712012	      1675 ns/op	    5120 B/op	       2 allocs/op
 PASS
-ok  	github.com/trippwill/keel	35.930s
+ok  	github.com/trippwill/keel	36.315s
 ?   	github.com/trippwill/keel/examples	[no test files]
 ?   	github.com/trippwill/keel/examples/dashboard	[no test files]

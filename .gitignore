@@ -1,3 +1,4 @@
 .tmp/
 keel.test
 *.log
+current_bench_result-*.txt

@@ -26,8 +26,12 @@ var (
 	ErrInvalidExtentUnits = errors.New("invalid extent units")
 	// ErrInvalidExtentMinCells indicates invalid minimum cells for an extent.
 	ErrInvalidExtentMinCells = errors.New("invalid extent min cells")
+	// ErrInvalidExtentMaxCells indicates invalid maximum cells for an extent.
+	ErrInvalidExtentMaxCells = errors.New("invalid extent max cells")
 	// ErrInvalidExtentMin indicates invalid minimum requirements for an extent.
 	ErrInvalidExtentMin = errors.New("invalid extent min")
+	// ErrInvalidExtentMax indicates invalid maximum requirements for an extent.
+	ErrInvalidExtentMax = errors.New("invalid extent max")
 	// ErrNilSlot indicates a nil slot entry.
 	ErrNilSlot = errors.New("nil slot")
 	// ErrUnknownRenderable indicates a Renderable with an unsupported type.

@@ -42,6 +42,25 @@ func ColResolver(total int, container Container) ([]int, int, error) {
 	return ResolveExtents(total, extents)
 }
 
+// GetContainerExtents retrieves the extents of all slots in a container.
+//
+// Returns:
+// - Slice of ExtentConstraint for each slot
+// - Error, if any slot is nil
+func GetContainerExtents(container Container) ([]ExtentConstraint, error) {
+	extents := make([]ExtentConstraint, container.Len())
+	for i := range extents {
+		slot, ok := container.Slot(i)
+		if !ok || slot == nil {
+			return nil, &SlotError{Index: i, Reason: ErrNilSlot}
+		}
+
+		extents[i] = slot.GetExtent()
+	}
+
+	return extents, nil
+}
+
 // ResolveExtents distributes a total number of cells across slot extents.
 //
 // Arguments:
@@ -64,9 +83,9 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 	}
 
 	sizes := make([]int, count)
-	flexUnits := 0
 	required := 0
 	hasFlex := false
+	hasFlexMax := false
 
 	// Pass 1: validate and allocate fixed extents, accumulate flex units and min sizes.
 	for i := range count {
@@ -77,6 +96,9 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 		if spec.MinCells < 0 {
 			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMinCells}
 		}
+		if spec.MaxCells < 0 {
+			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMaxCells}
+		}
 
 		switch spec.Kind {
 		case ExtentFixed:
@@ -85,9 +107,14 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 			}
 			sizes[i] = spec.Units
 		case ExtentFlex:
+			if spec.MaxCells > 0 && spec.MaxCells < spec.MinCells {
+				return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentMax}
+			}
 			sizes[i] = spec.MinCells
-			flexUnits += spec.Units
 			hasFlex = true
+			if spec.MaxCells > 0 {
+				hasFlexMax = true
+			}
 		default:
 			return nil, required, &ExtentError{Index: i, Reason: ErrInvalidExtentKind}
 		}
@@ -108,22 +135,157 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 		return sizes, required, nil
 	}
 
-	remainder := leftover
-	for i := range count {
-		spec := extents[i]
+	if leftover > 0 {
+		if hasFlexMax {
+			remaining := distributeFlexWithMax(sizes, extents, leftover)
+			if remaining > 0 {
+				distributeFlexIgnoringMax(sizes, extents, remaining)
+			}
+		} else {
+			distributeFlexIgnoringMax(sizes, extents, leftover)
+		}
+	}
+
+	return sizes, required, nil
+}
+
+func distributeFlexWithMax(sizes []int, extents []ExtentConstraint, leftover int) int {
+	if leftover <= 0 {
+		return 0
+	}
+
+	flexIndices := make([]int, 0, len(extents))
+	unlimited := false
+	capacity := 0
+	for i, spec := range extents {
 		if spec.Kind != ExtentFlex {
 			continue
 		}
-		add := 0
-		if flexUnits > 0 {
-			add = leftover * spec.Units / flexUnits
+		flexIndices = append(flexIndices, i)
+		if spec.MaxCells == 0 {
+			unlimited = true
+			continue
 		}
+		if sizes[i] < spec.MaxCells {
+			capacity += spec.MaxCells - sizes[i]
+		}
+	}
+
+	if len(flexIndices) == 0 {
+		return leftover
+	}
+
+	amount := leftover
+	remaining := 0
+	if !unlimited && capacity < leftover {
+		amount = capacity
+		remaining = leftover - capacity
+	}
+
+	if amount > 0 {
+		remaining += distributeFlexCapped(sizes, extents, flexIndices, amount)
+	}
+
+	return remaining
+}
+
+func distributeFlexCapped(sizes []int, extents []ExtentConstraint, flexIndices []int, amount int) int {
+	remaining := amount
+	active := make([]int, 0, len(flexIndices))
+	for _, i := range flexIndices {
+		spec := extents[i]
+		if spec.MaxCells == 0 || sizes[i] < spec.MaxCells {
+			active = append(active, i)
+		}
+	}
+
+	for remaining > 0 && len(active) > 0 {
+		totalUnits := 0
+		for _, i := range active {
+			totalUnits += extents[i].Units
+		}
+
+		distributed := 0
+		for _, i := range active {
+			add := 0
+			if totalUnits > 0 {
+				add = remaining * extents[i].Units / totalUnits
+			}
+			cap := maxFlexAdd(extents[i], sizes[i], remaining)
+			if add > cap {
+				add = cap
+			}
+			if add > 0 {
+				sizes[i] += add
+				distributed += add
+			}
+		}
+		remaining -= distributed
+
+		if remaining > 0 {
+			for _, i := range active {
+				if remaining == 0 {
+					break
+				}
+				cap := maxFlexAdd(extents[i], sizes[i], remaining)
+				if cap <= 0 {
+					continue
+				}
+				sizes[i]++
+				remaining--
+			}
+		}
+
+		next := active[:0]
+		for _, i := range active {
+			spec := extents[i]
+			if spec.MaxCells == 0 || sizes[i] < spec.MaxCells {
+				next = append(next, i)
+			}
+		}
+		active = next
+	}
+
+	return remaining
+}
+
+func maxFlexAdd(spec ExtentConstraint, size int, remaining int) int {
+	if spec.MaxCells == 0 {
+		return remaining
+	}
+	if size >= spec.MaxCells {
+		return 0
+	}
+	return spec.MaxCells - size
+}
+
+func distributeFlexIgnoringMax(sizes []int, extents []ExtentConstraint, leftover int) {
+	if leftover <= 0 {
+		return
+	}
+
+	flexUnits := 0
+	for _, spec := range extents {
+		if spec.Kind == ExtentFlex {
+			flexUnits += spec.Units
+		}
+	}
+	if flexUnits == 0 {
+		return
+	}
+
+	remainder := leftover
+	for i, spec := range extents {
+		if spec.Kind != ExtentFlex {
+			continue
+		}
+		add := leftover * spec.Units / flexUnits
 		sizes[i] += add
 		remainder -= add
 	}
 
 	if remainder > 0 {
-		for i := 0; i < count && remainder > 0; i++ {
+		for i := 0; i < len(extents) && remainder > 0; i++ {
 			spec := extents[i]
 			if spec.Kind != ExtentFlex {
 				continue
@@ -132,25 +294,4 @@ func ResolveExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 			remainder--
 		}
 	}
-
-	return sizes, required, nil
-}
-
-// GetContainerExtents retrieves the extents of all slots in a container.
-//
-// Returns:
-// - Slice of ExtentConstraint for each slot
-// - Error, if any slot is nil
-func GetContainerExtents(container Container) ([]ExtentConstraint, error) {
-	extents := make([]ExtentConstraint, container.Len())
-	for i := range extents {
-		slot, ok := container.Slot(i)
-		if !ok || slot == nil {
-			return nil, &SlotError{Index: i, Reason: ErrNilSlot}
-		}
-
-		extents[i] = slot.GetExtent()
-	}
-
-	return extents, nil
 }

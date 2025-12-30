@@ -15,7 +15,7 @@ func ExampleSplit() keel.Renderable {
 			keel.Panel(keel.Fixed(19), "detail"),
 		),
 		keel.Row(keel.Fixed(3),
-			keel.Panel(keel.FlexUnit(), "status"),
+			keel.PanelClip(keel.FlexMax(1, 10), "status"),
 			keel.Panel(keel.FlexUnit(), "help"),
 		),
 	)
