@@ -2,7 +2,7 @@ package examples
 
 import (
 	gloss "github.com/charmbracelet/lipgloss"
-	"github.com/trippwill/chiplog/keel"
+	"github.com/trippwill/keel"
 )
 
 // ExampleSplit returns the example layout hierarchy used across demos and tests.

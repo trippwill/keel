@@ -1,4 +1,4 @@
-module github.com/trippwill/chiplog/keel
+module github.com/trippwill/keel
 
 go 1.25.5
 
