@@ -5,8 +5,8 @@ Deterministic spatial layout for discrete character buffers
 Keel is a deterministic layout engine for terminal applications. You describe a
 layout hierarchy, Keel deterministically allocates space along rows and
 columns, and panels render content and optional lipgloss styles. Rendering
-is strict: if frames or content (after clipping) don't fit the allocation, Keel
-returns an `ExtentTooSmallError`.
+is strict by default: if frames or content don't fit the allocation, Keel
+returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
 
 ## Concepts
 
@@ -14,7 +14,7 @@ returns an `ExtentTooSmallError`.
 - `Panel` is a block identified by a `KeelID`.
 - `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`) controls how space is
   allocated along the container axis.
-- `ClipConstraint` caps content size before rendering.
+- `FitMode` controls how content fits inside a panel.
 - `Context` provides size, `ContentProvider`, and `StyleProvider`.
 
 ## Example
@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	gloss "github.com/charmbracelet/lipgloss"
-	"github.com/trippwill/chiplog/keel"
+	"github.com/trippwill/keel"
 )
 
 func main() {
@@ -96,7 +96,7 @@ can supply any `LoggerFunc` to integrate with your own logging.
 
 ## Limitations
 
-Keel does not perform intrinsic measurement, constraint solving, or stateful
+Keel does not perform intrinsic measurement, or stateful
 rendering. It exists solely to map hierarchical layout intent onto terminal
 geometry.
 
@@ -109,17 +109,25 @@ geometry.
 
 ## Development
 
+**One time setup**
+- install [Mise](https://mise.jdx.dev/getting-started.html#installing-mise-cli)
+- `mise trust`
 - `mise install` to set up a new development environment
   - May require network access to fetch dependencies
-- `mise run test-keel` to run tests
-- `mise run bench-keel` to run benchmarks
-- `mise run precommit-keel` to run pre-commit checks
-  - Always run this before opening a PR
-  - May require network access to sync the workspace
-  - Runs `go fmt`, `go vet`, `go test`, and `go generate`
+
+**Development commands**
+
+- `mise run demo` to run the example dashboard
+- `mise run test` to run tests (no cache)
+- `mise run bench` to run benchmarks
+- `mise run precommit` to run fmt, vet, build, and tests
+- `mise run bench-report` to update `current_bench_result.txt` and `BENCHMARKS.md`
 
 Or standard Go commands:
 
 - `go test ./...`
-- `go test ./... -bench=BenchmarkRenderExampleSplit -benchmem`
+- `go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem`
 - `go generate ./...`
+- `go fmt ./...`
+- `go vet ./...`
+- `go build ./...`

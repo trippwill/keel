@@ -350,7 +350,7 @@ func TestRenderPanel_ContentProviderRequired(t *testing.T) {
 }
 
 func TestRenderPanel_ContentProviderInfo(t *testing.T) {
-	panel := PanelClip(FlexUnit(), Clip(3, 2), "a")
+	panel := PanelClip(FlexUnit(), "a")
 	style := gloss.NewStyle().
 		Border(gloss.NormalBorder()).
 		Padding(1, 2).
@@ -399,8 +399,8 @@ func TestRenderPanel_ContentProviderInfo(t *testing.T) {
 			got.ContentHeight,
 		)
 	}
-	if got.Clip != (ClipConstraint{Width: 3, Height: 2}) {
-		t.Fatalf("expected clip %+v, got %+v", ClipConstraint{Width: 3, Height: 2}, got.Clip)
+	if got.Fit != FitClip {
+		t.Fatalf("expected fit %v, got %v", FitClip, got.Fit)
 	}
 }
 
@@ -472,8 +472,8 @@ func TestRenderPanel_ContentTooWide(t *testing.T) {
 	}
 }
 
-func TestRenderPanel_ClipAppliesToContent(t *testing.T) {
-	panel := PanelClip(FlexUnit(), ClipWidth(2), "a")
+func TestRenderPanel_FitClipTruncatesContent(t *testing.T) {
+	panel := PanelClip(FlexUnit(), "a")
 	ctx := Context[string]{
 		Width:           2,
 		Height:          1,
@@ -489,8 +489,8 @@ func TestRenderPanel_ClipAppliesToContent(t *testing.T) {
 	}
 }
 
-func TestRenderPanel_ClipLargerThanContentStillFits(t *testing.T) {
-	panel := PanelClip(FlexUnit(), ClipWidth(10), "a")
+func TestRenderPanel_FitClipLargerThanContentStillFits(t *testing.T) {
+	panel := PanelClip(FlexUnit(), "a")
 	ctx := Context[string]{
 		Width:           4,
 		Height:          1,
@@ -507,21 +507,38 @@ func TestRenderPanel_ClipLargerThanContentStillFits(t *testing.T) {
 	}
 }
 
-func TestRenderPanel_ClipTooWide(t *testing.T) {
-	panel := PanelClip(FlexUnit(), ClipWidth(3), "a")
+func TestRenderPanel_FitWrapTruncatesHeight(t *testing.T) {
+	panel := PanelWrap(FlexUnit(), "a")
+	ctx := Context[string]{
+		Width:           4,
+		Height:          1,
+		ContentProvider: makeContentProvider("abcd efgh"),
+	}
+
+	got, err := Render(panel, ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "abcd" {
+		t.Fatalf("expected %q, got %q", "abcd", got)
+	}
+}
+
+func TestRenderPanel_FitOverflowAllowsOverflow(t *testing.T) {
+	panel := PanelOverflow(FlexUnit(), "a")
 	ctx := Context[string]{
 		Width:           2,
 		Height:          1,
 		ContentProvider: makeContentProvider("abcd"),
 	}
 
-	_, err := Render(panel, ctx)
-	var tooSmall *ExtentTooSmallError
-	if !errors.As(err, &tooSmall) {
-		t.Fatalf("expected ExtentTooSmallError, got %v", err)
+	got, err := Render(panel, ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if tooSmall.Reason != "content" {
-		t.Fatalf("expected reason %q, got %q", "content", tooSmall.Reason)
+	width, height := gloss.Size(got)
+	if width != ctx.Width || height <= ctx.Height {
+		t.Fatalf("expected overflow output %dx%d, got %dx%d", ctx.Width, ctx.Height+1, width, height)
 	}
 }
 
@@ -579,22 +596,21 @@ func TestRenderPanel_TransformAffectsHeight(t *testing.T) {
 	}
 }
 
-func TestRenderPanel_ClipWithFrameTooWide(t *testing.T) {
-	panel := PanelClip(FlexUnit(), ClipWidth(5), "a")
+func TestRenderPanel_FitWrapStrictTooTall(t *testing.T) {
+	panel := PanelWrapStrict(FlexUnit(), "a")
 	ctx := Context[string]{
-		Width:  6,
-		Height: 3,
-		StyleProvider: func(id string) *gloss.Style {
-			s := gloss.NewStyle().Border(gloss.NormalBorder())
-			return &s
-		},
-		ContentProvider: makeContentProvider("abcdef"),
+		Width:           4,
+		Height:          1,
+		ContentProvider: makeContentProvider("abcd efgh"),
 	}
 
 	_, err := Render(panel, ctx)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
+	}
+	if tooSmall.Axis != AxisVertical {
+		t.Fatalf("expected vertical axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Reason != "content" {
 		t.Fatalf("expected reason %q, got %q", "content", tooSmall.Reason)

@@ -12,7 +12,7 @@ type Renderable interface {
 type Block[KID KeelID] interface {
 	Renderable
 	GetID() KID
-	GetClip() ClipConstraint // Returns the content clip (max content size).
+	GetFit() FitMode // Returns the content fit mode.
 }
 
 // Container is a [Renderable] that splits its allocation across slots.

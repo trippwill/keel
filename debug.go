@@ -31,9 +31,7 @@ func DefaultDebugProvider[KID KeelID](id KID, info RenderInfo) (string, error) {
 		fmt.Sprintf("alloc:%dx%d", info.Width, info.Height),
 		fmt.Sprintf("frame:%dx%d", info.FrameWidth, info.FrameHeight),
 		fmt.Sprintf("content:%dx%d", info.ContentWidth, info.ContentHeight),
-	}
-	if info.Clip.Width > 0 || info.Clip.Height > 0 {
-		lines = append(lines, fmt.Sprintf("clip:%dx%d", info.Clip.Width, info.Clip.Height))
+		fmt.Sprintf("fit:%s", info.Fit.String()),
 	}
 
 	maxLines := min(info.ContentHeight, len(lines))
@@ -58,9 +56,7 @@ func formatCompactDebug[KID KeelID](id KID, info RenderInfo) string {
 		fmt.Sprintf("a:%dx%d", info.Width, info.Height),
 		fmt.Sprintf("f:%dx%d", info.FrameWidth, info.FrameHeight),
 		fmt.Sprintf("c:%dx%d", info.ContentWidth, info.ContentHeight),
-	}
-	if info.Clip.Width > 0 || info.Clip.Height > 0 {
-		parts = append(parts, fmt.Sprintf("cl:%dx%d", info.Clip.Width, info.Clip.Height))
+		fmt.Sprintf("ft:%s", info.Fit.String()),
 	}
 
 	var b strings.Builder

@@ -16,7 +16,7 @@ func TestDefaultDebugProviderFitsContent(t *testing.T) {
 		ContentHeight: 2,
 		FrameWidth:    0,
 		FrameHeight:   0,
-		Clip:          ClipConstraint{},
+		Fit:           FitExact,
 	}
 
 	got, err := provider(id, info)
@@ -45,7 +45,7 @@ func TestDefaultDebugProviderCompactSingleLine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := "id:header|a:70x12|f:4x2|c:80x1"
+	want := "id:header|a:70x12|f:4x2|c:80x1|ft:Exact"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -67,7 +67,7 @@ func TestDefaultDebugProviderCompactTwoLines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := "id:status\nid:status|a:30x3|f:2x2|c:80x2"
+	want := "id:status\nid:status|a:30x3|f:2x2|c:80x2|ft:Exact"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -83,14 +83,14 @@ func TestDefaultDebugProviderExpandedLines(t *testing.T) {
 		ContentHeight: 5,
 		FrameWidth:    4,
 		FrameHeight:   2,
-		Clip:          ClipConstraint{Width: 10, Height: 0},
+		Fit:           FitWrapClip,
 	}
 
 	got, err := provider(id, info)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := "id:nav\nalloc:15x6\nframe:4x2\ncontent:20x5\nclip:10x0"
+	want := "id:nav\nalloc:15x6\nframe:4x2\ncontent:20x5\nfit:WrapClip"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}

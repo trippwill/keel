@@ -1,0 +1,4 @@
+coverage:
+  ignore:
+    - "examples/**"
+    - "**/*_string.go"

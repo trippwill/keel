@@ -2,15 +2,15 @@ package examples
 
 import (
 	gloss "github.com/charmbracelet/lipgloss"
-	"github.com/trippwill/chiplog/keel"
+	"github.com/trippwill/keel"
 )
 
 // ExampleSplit returns the example layout hierarchy used across demos and tests.
 func ExampleSplit() keel.Renderable {
 	return keel.Col(keel.FlexUnit(),
-		keel.PanelClip(keel.Fixed(3), keel.ClipHeight(1), "header"),
+		keel.PanelClip(keel.Fixed(3), "header"),
 		keel.Row(keel.FlexMin(1, 6),
-			keel.PanelClip(keel.FlexUnit(), keel.ClipWidth(10), "nav"),
+			keel.PanelWrap(keel.FlexUnit(), "nav"),
 			keel.Panel(keel.FlexMin(2, 8), "feed"),
 			keel.Panel(keel.Fixed(19), "detail"),
 		),

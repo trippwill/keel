@@ -1,5 +1,6 @@
 //go:generate stringer -type=Axis -trimprefix=Axis
-//go:generate stringer -type=ExtentKind
+//go:generate stringer -type=ExtentKind -trimprefix=Extent
+//go:generate stringer -type=FitMode -trimprefix=Fit
 package keel
 
 // Axis represents a layout axis used by containers to split space.
@@ -10,6 +11,24 @@ const (
 	AxisHorizontal Axis = 0
 	// AxisVertical lays out content top-to-bottom.
 	AxisVertical Axis = 1
+)
+
+// FitMode represents how content should fit within a [Block]'s content box.
+type FitMode uint8
+
+const (
+	// FitExact performs no fitting and errors if content exceeds the content box.
+	// This is the zero-value default.
+	FitExact FitMode = iota
+	// FitWrapClip wraps to the content box width, then clips vertically to fit.
+	FitWrapClip
+	// FitWrapStrict wraps to the content box width and errors if the wrapped
+	// content exceeds the content box height.
+	FitWrapStrict
+	// FitClip clips content to the content box in both dimensions.
+	FitClip
+	// FitOverflow allows content to overflow (lipgloss default behavior).
+	FitOverflow
 )
 
 // ExtentKind represents whether an [ExtentConstraint] is fixed or flexible.
@@ -54,43 +73,15 @@ func FlexMin(units int, minReserved int) ExtentConstraint {
 	return ExtentConstraint{ExtentFlex, units, minReserved}
 }
 
-// ClipConstraint caps the width and height of the content box.
-// Clipping is applied to content before sizing checks, and the clipped content
-// must still fit within the content box.
-// Zero values indicate no constraint.
-type ClipConstraint struct {
-	Width, Height int
-}
-
-// Clip returns a clip constraint for width and height.
-func Clip(width, height int) ClipConstraint {
-	return ClipConstraint{Width: width, Height: height}
-}
-
-// ClipWidth returns a clip constraint that limits width only.
-func ClipWidth(width int) ClipConstraint {
-	return ClipConstraint{Width: width, Height: 0}
-}
-
-// ClipHeight returns a clip constraint that limits height only.
-func ClipHeight(height int) ClipConstraint {
-	return ClipConstraint{Width: 0, Height: height}
-}
-
 // GetExtent implements the [Renderable] interface.
 func (e ExtentConstraint) GetExtent() ExtentConstraint {
 	return e
 }
 
-// GetClip implements the [Block] interface.
-func (mc ClipConstraint) GetClip() ClipConstraint {
-	return mc
-}
-
 // RenderInfo describes the allocated space for a [Block] render pass.
 type RenderInfo struct {
-	Width, Height               int            // Total allocated size
-	ContentWidth, ContentHeight int            // Inner content box size
-	FrameWidth, FrameHeight     int            // Total frame size (padding + border + margin)
-	Clip                        ClipConstraint // Clipping constraint if any
+	Width, Height               int     // Total allocated size
+	ContentWidth, ContentHeight int     // Inner content box size
+	FrameWidth, FrameHeight     int     // Total frame size (padding + border + margin)
+	Fit                         FitMode // Fit mode for content
 }

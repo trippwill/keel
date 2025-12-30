@@ -14,7 +14,7 @@ type StyleProvider[KID KeelID] func(id KID) *gloss.Style
 
 // ContentProvider returns content for the given block allocation.
 // Providers should respect ContentWidth/ContentHeight.
-// ClipConstraint will be applied after content is retrieved.
+// FitMode will be applied after content is retrieved.
 type ContentProvider[KID KeelID] func(id KID, info RenderInfo) (string, error)
 
 // Context provides rendering inputs for a render pass, including allocation
@@ -31,6 +31,16 @@ type Context[KID KeelID] struct {
 
 	// Optional logger for render events.
 	Logger LoggerFunc
+}
+
+func NewContext[KID KeelID](width, height int, styleProvider StyleProvider[KID], contentProvider ContentProvider[KID]) Context[KID] {
+	return Context[KID]{
+		Width:           width,
+		Height:          height,
+		StyleProvider:   styleProvider,
+		ContentProvider: contentProvider,
+		Logger:          nil,
+	}
 }
 
 // WithSize returns a copy of the context with updated dimensions.

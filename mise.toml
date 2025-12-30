@@ -1,0 +1,45 @@
+[tools]
+go = "latest"
+
+[env]
+GOCACHE = "{{config_root}}/.tmp/go-build"
+GOMODCACHE = "{{config_root}}/.tmp/go-mod"
+
+[tasks.demo]
+run = "go run ./examples/dashboard/main.go"
+
+[tasks.tidy]
+run = "go mod tidy"
+
+[tasks.generate]
+depends = ["tidy"]
+run = "go generate ./..."
+
+[tasks.fmt]
+depends = ["generate"]
+run = "go fmt ./..."
+
+[tasks.vet]
+depends = ["fmt"]
+run = "go vet ./..."
+
+[tasks.build]
+depends = ["vet"]
+run = "go build ./..."
+
+# -count=1 to disable go test caching
+[tasks.test]
+run = "go test ./... -count=1"
+
+[tasks.bench]
+run = "go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem"
+
+[tasks.bench-report]
+run = """
+go test ./... -bench='BenchmarkRender|BenchmarkResolve' -benchmem -count=6 > current_bench_result.txt
+./scripts/bench-report.sh
+"""
+
+[tasks.precommit]
+depends = ["build"]
+depends_post = ["test"]

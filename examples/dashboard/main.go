@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/trippwill/chiplog/keel"
-	"github.com/trippwill/chiplog/keel/examples"
+	"github.com/trippwill/keel"
+	"github.com/trippwill/keel/examples"
 )
 
 func main() {

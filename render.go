@@ -225,7 +225,7 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 		ContentHeight: availableHeight,
 		FrameWidth:    frameWidth,
 		FrameHeight:   frameHeight,
-		Clip:          block.GetClip(),
+		Fit:           block.GetFit(),
 	}
 
 	logf(
@@ -239,8 +239,7 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 		info.FrameHeight,
 		info.ContentWidth,
 		info.ContentHeight,
-		info.Clip.Width,
-		info.Clip.Height,
+		info.Fit,
 	)
 
 	content, err := contentFor(ctx, block.GetID(), info)
@@ -255,41 +254,85 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 		style = style.UnsetTransform()
 	}
 
-	// Clip only affects content, not the frame.
-	clip := info.Clip
 	contentToRender := contentForMeasure
-	if clip.Width > 0 || clip.Height > 0 {
-		clipStyle := gloss.NewStyle()
-		if clip.Width > 0 {
-			clipStyle = clipStyle.MaxWidth(clip.Width)
+	switch info.Fit {
+	case FitClip:
+		if availableWidth <= 0 || availableHeight <= 0 {
+			contentToRender = ""
+			break
 		}
-		if clip.Height > 0 {
-			clipStyle = clipStyle.MaxHeight(clip.Height)
+		contentToRender = gloss.NewStyle().
+			MaxWidth(availableWidth).
+			MaxHeight(availableHeight).
+			Render(contentToRender)
+	case FitWrapClip:
+		if availableWidth <= 0 || availableHeight <= 0 {
+			contentToRender = ""
+			break
 		}
-		contentToRender = clipStyle.Render(contentForMeasure)
-	}
-
-	contentWidth, contentHeight := gloss.Size(contentToRender)
-	if contentWidth > availableWidth {
-		err := &ExtentTooSmallError{
-			Axis:   AxisHorizontal,
-			Need:   frameWidth + contentWidth,
-			Have:   ctx.Width,
-			Source: sourceFor(block),
-			Reason: "content",
+		contentToRender = gloss.NewStyle().
+			Width(availableWidth).
+			MaxWidth(availableWidth).
+			MaxHeight(availableHeight).
+			Render(contentToRender)
+	case FitWrapStrict:
+		if availableWidth > 0 {
+			contentToRender = gloss.NewStyle().
+				Width(availableWidth).
+				Render(contentToRender)
 		}
-		logError(ctx.Logger, path, "block.content", err)
-		return "", err
-	}
-	if contentHeight > availableHeight {
-		err := &ExtentTooSmallError{
-			Axis:   AxisVertical,
-			Need:   frameHeight + contentHeight,
-			Have:   ctx.Height,
-			Source: sourceFor(block),
-			Reason: "content",
+		contentWidth, contentHeight := gloss.Size(contentToRender)
+		if contentWidth > availableWidth {
+			err := &ExtentTooSmallError{
+				Axis:   AxisHorizontal,
+				Need:   frameWidth + contentWidth,
+				Have:   ctx.Width,
+				Source: sourceFor(block),
+				Reason: "content",
+			}
+			logError(ctx.Logger, path, "block.content", err)
+			return "", err
 		}
-		logError(ctx.Logger, path, "block.content", err)
+		if contentHeight > availableHeight {
+			err := &ExtentTooSmallError{
+				Axis:   AxisVertical,
+				Need:   frameHeight + contentHeight,
+				Have:   ctx.Height,
+				Source: sourceFor(block),
+				Reason: "content",
+			}
+			logError(ctx.Logger, path, "block.content", err)
+			return "", err
+		}
+	case FitExact:
+		contentWidth, contentHeight := gloss.Size(contentToRender)
+		if contentWidth > availableWidth {
+			err := &ExtentTooSmallError{
+				Axis:   AxisHorizontal,
+				Need:   frameWidth + contentWidth,
+				Have:   ctx.Width,
+				Source: sourceFor(block),
+				Reason: "content",
+			}
+			logError(ctx.Logger, path, "block.content", err)
+			return "", err
+		}
+		if contentHeight > availableHeight {
+			err := &ExtentTooSmallError{
+				Axis:   AxisVertical,
+				Need:   frameHeight + contentHeight,
+				Have:   ctx.Height,
+				Source: sourceFor(block),
+				Reason: "content",
+			}
+			logError(ctx.Logger, path, "block.content", err)
+			return "", err
+		}
+	case FitOverflow:
+		// No fitting or validation; let lipgloss render freely.
+	default:
+		err := &ConfigError{}
+		logError(ctx.Logger, path, "block.fit", err)
 		return "", err
 	}
 
