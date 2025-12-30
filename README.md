@@ -12,10 +12,12 @@ returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
 
 - `Row` / `Col` define containers that split space along an axis.
 - `Panel` is a block identified by a `KeelID`.
-- `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`) controls how space is
+- `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`, `FlexMax`, `FlexMinMax`) controls how space is
   allocated along the container axis.
 - `FitMode` controls how content fits inside a panel.
 - `Context` provides size, `ContentProvider`, and `StyleProvider`.
+- Flex max caps are soft: if all flex slots hit their max and space remains,
+  the remainder is distributed ignoring max caps.
 
 ## Example
 
@@ -73,6 +75,15 @@ func main() {
 
 There is a runnable demo in `examples/dashboard` that uses the shared fixtures
 in `examples`.
+
+Here's a small example using soft max caps:
+
+```go
+layout := keel.Row(keel.FlexUnit(),
+	keel.Panel(keel.FlexMinMax(1, 10, 20), "nav"),
+	keel.Panel(keel.FlexMax(2, 30), "body"),
+)
+```
 
 ## Logging
 

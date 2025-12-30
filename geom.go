@@ -47,30 +47,43 @@ const (
 type ExtentConstraint struct {
 	Kind     ExtentKind
 	Units    int
-	MinCells int // Minimum total cells to reserve on this axis
+	MinCells int // Minimum total cells to reserve on this axis (0 = no min)
+	MaxCells int // Maximum total cells to reserve on this axis (0 = no max)
 }
 
 // FlexUnit returns a single flexible unit of space with no minimum.
 func FlexUnit() ExtentConstraint {
-	return ExtentConstraint{ExtentFlex, 1, 0}
+	return ExtentConstraint{ExtentFlex, 1, 0, 0}
 }
 
 // Fixed creates a fixed [ExtentConstraint] with the given units in cells.
 // Fixed extents must be at least their MinCells value.
 func Fixed(units int) ExtentConstraint {
-	return ExtentConstraint{ExtentFixed, units, units}
+	return ExtentConstraint{ExtentFixed, units, units, 0}
 }
 
 // Flex creates a flexible [ExtentConstraint] with the given units in flex space.
 // Flex extents receive space after fixed and minimum allocations are satisfied.
 func Flex(units int) ExtentConstraint {
-	return ExtentConstraint{ExtentFlex, units, 0}
+	return ExtentConstraint{ExtentFlex, units, 0, 0}
 }
 
 // FlexMin creates a flexible [ExtentConstraint] with the given units in flex space,
 // and reserves at least minReserved total cells along the container axis.
 func FlexMin(units int, minReserved int) ExtentConstraint {
-	return ExtentConstraint{ExtentFlex, units, minReserved}
+	return ExtentConstraint{ExtentFlex, units, minReserved, 0}
+}
+
+// FlexMax creates a flexible [ExtentConstraint] with the given units in flex space,
+// and caps at maxCells total cells along the container axis.
+func FlexMax(units int, maxCells int) ExtentConstraint {
+	return ExtentConstraint{ExtentFlex, units, 0, maxCells}
+}
+
+// FlexMinMax creates a flexible [ExtentConstraint] with the given units in flex space,
+// reserving at least minReserved and capping at maxCells total cells along the axis.
+func FlexMinMax(units int, minReserved int, maxCells int) ExtentConstraint {
+	return ExtentConstraint{ExtentFlex, units, minReserved, maxCells}
 }
 
 // GetExtent implements the [Renderable] interface.

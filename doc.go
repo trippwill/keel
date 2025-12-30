@@ -26,6 +26,8 @@
 // Sizing rules:
 //   - ExtentConstraint and Context.Width/Height describe the total allocation
 //     (Content + Padding + Border + Margin) for a renderable along an axis.
+//   - Flex max caps are soft: if all flex slots hit their max and space remains,
+//     the remainder is distributed ignoring max caps.
 //   - lipgloss.Style.Width/Height describe the inner box (Content + Padding),
 //     excluding border and margins.
 //   - lipgloss.Style.GetFrameSize returns Margin + Padding + Border.
