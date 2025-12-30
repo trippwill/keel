@@ -21,5 +21,5 @@ type StackSpec interface {
 	Spec
 	Axis() Axis                  // Layout axis of the stack
 	Len() int                    // Number of slots in the stack
-	Slot(index int) (Spec, bool) // Slot access (ok=false when out of range); must be stable during an arrange call
+	Slot(index int) (Spec, bool) // Slot access (ok=false when out of range); must be stable during an arrange pass
 }
