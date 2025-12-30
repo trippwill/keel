@@ -1,29 +1,81 @@
 package keel
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
 	gloss "github.com/charmbracelet/lipgloss"
 )
 
-// Render renders a [Renderable] given the rendering context.
-// It dispatches to RenderContainer or RenderBlock based on the concrete type.
-func Render[KID KeelID](renderable Renderable, ctx Context[KID]) (string, error) {
+// Render renders a [Renderable] given the rendering context and size.
+// It resolves allocations and renders the resulting tree.
+func Render[KID KeelID](ctx Context[KID], renderable Renderable, size Size) (string, error) {
+	resolved, err := Resolve[KID](ctx, renderable, size)
+	if err != nil {
+		return "", err
+	}
+	return RenderResolved(ctx, resolved)
+}
+
+// RenderContainer renders a [Container] given the rendering context and size.
+// The container's extents are resolved before rendering.
+func RenderContainer[KID KeelID](ctx Context[KID], container Container, size Size) (string, error) {
+	resolved, err := Resolve[KID](ctx, container, size)
+	if err != nil {
+		return "", err
+	}
+	return RenderResolved(ctx, resolved)
+}
+
+// RenderResolved renders a resolved layout tree with the given context.
+func RenderResolved[KID KeelID](ctx Context[KID], resolved Resolved[KID]) (string, error) {
 	path := ""
 	if ctx.Logger != nil {
 		path = "/"
 	}
-	return renderWithPath(renderable, ctx, path)
+	return renderResolvedWithPath(resolved.Root, ctx, path)
 }
 
-func renderWithPath[KID KeelID](renderable Renderable, ctx Context[KID], path string) (string, error) {
-	switch n := renderable.(type) {
-	case Container:
-		return renderContainerWithPath(n, ctx, path)
-	case Block[KID]:
-		return renderBlockWithPath(n, ctx, path)
+func renderResolvedWithPath[KID KeelID](node ResolvedNode[KID], ctx Context[KID], path string) (string, error) {
+	switch node.Kind {
+	case NodeContainer:
+		if len(node.Children) == 0 {
+			return "", nil
+		}
+		axis := node.Axis
+		if axis != AxisHorizontal && axis != AxisVertical {
+			err := &ConfigError{Reason: ErrInvalidAxis}
+			logError(ctx.Logger, path, "container.axis", err)
+			return "", err
+		}
+
+		rendered := make([]string, len(node.Children))
+		for i, child := range node.Children {
+			childPath := path
+			if ctx.Logger != nil {
+				childPath = appendPath(path, i)
+			}
+			out, err := renderResolvedWithPath(child, ctx, childPath)
+			if err != nil {
+				logError(ctx.Logger, path, "container.render", err)
+				return "", err
+			}
+			rendered[i] = out
+		}
+
+		if axis == AxisHorizontal {
+			return gloss.JoinHorizontal(gloss.Top, rendered...), nil
+		}
+		return gloss.JoinVertical(gloss.Left, rendered...), nil
+
+	case NodeBlock:
+		if node.Block == nil {
+			err := &ConfigError{Reason: ErrUnknownRenderable}
+			logError(ctx.Logger, path, "dispatch", err)
+			return "", err
+		}
+		size := Size{Width: node.Rect.Width, Height: node.Rect.Height}
+		return renderBlockWithPath(node.Block, ctx, size, path)
 	default:
 		err := &ConfigError{Reason: ErrUnknownRenderable}
 		logError(ctx.Logger, path, "dispatch", err)
@@ -31,143 +83,18 @@ func renderWithPath[KID KeelID](renderable Renderable, ctx Context[KID], path st
 	}
 }
 
-// RenderContainer renders a [Container] given the rendering context.
-// The container's extent is split across slots using the resolver rules.
-// Allocation failures are reported as ExtentTooSmallError.
-func RenderContainer[KID KeelID](container Container, ctx Context[KID]) (string, error) {
-	path := ""
-	if ctx.Logger != nil {
-		path = "/"
-	}
-	return renderContainerWithPath(container, ctx, path)
-}
-
-func renderContainerWithPath[KID KeelID](container Container, ctx Context[KID], path string) (string, error) {
-	length := container.Len()
-	if length <= 0 {
-		return "", nil
-	}
-
-	axis := container.GetAxis()
-	if axis != AxisHorizontal && axis != AxisVertical {
-		err := &ConfigError{Reason: ErrInvalidAxis}
-		logError(ctx.Logger, path, "container.axis", err)
-		return "", err
-	}
-
-	rendered := make([]string, length)
-
-	switch axis {
-	case AxisHorizontal:
-		widths, required, err := RowResolver(ctx.Width, container)
-		if err != nil {
-			if errors.Is(err, ErrExtentTooSmall) {
-				err = &ExtentTooSmallError{
-					Axis:   AxisHorizontal,
-					Need:   required,
-					Have:   ctx.Width,
-					Source: "horizontal split",
-					Reason: "allocation",
-				}
-			}
-			logError(ctx.Logger, path, "container.resolve", err)
-			return "", err
-		}
-		logf(
-			ctx.Logger,
-			path,
-			LogEventContainerAlloc,
-			axis.String(),
-			ctx.Width,
-			len(widths),
-			widths,
-			required,
-		)
-
-		for i, width := range widths {
-			slot, ok := container.Slot(i)
-			if !ok || slot == nil {
-				err := &SlotError{Index: i, Reason: ErrNilSlot}
-				logError(ctx.Logger, path, "container.slot", err)
-				return "", err
-			}
-			_ctx := ctx.WithWidth(width)
-			childPath := path
-			if ctx.Logger != nil {
-				childPath = appendPath(path, i)
-			}
-			rendered[i], err = renderWithPath(slot, _ctx, childPath)
-			if err != nil {
-				logError(ctx.Logger, path, "container.render", err)
-				return "", err
-			}
-		}
-		return gloss.JoinHorizontal(gloss.Top, rendered...), nil
-
-	case AxisVertical:
-		heights, required, err := ColResolver(ctx.Height, container)
-		if err != nil {
-			if errors.Is(err, ErrExtentTooSmall) {
-				err = &ExtentTooSmallError{
-					Axis:   AxisVertical,
-					Need:   required,
-					Have:   ctx.Height,
-					Source: "vertical split",
-					Reason: "allocation",
-				}
-			}
-			logError(ctx.Logger, path, "container.resolve", err)
-			return "", err
-		}
-		logf(
-			ctx.Logger,
-			path,
-			LogEventContainerAlloc,
-			axis.String(),
-			ctx.Height,
-			len(heights),
-			heights,
-			required,
-		)
-
-		for i, height := range heights {
-			slot, ok := container.Slot(i)
-			if !ok || slot == nil {
-				err := &SlotError{Index: i, Reason: ErrNilSlot}
-				logError(ctx.Logger, path, "container.slot", err)
-				return "", err
-			}
-			_ctx := ctx.WithHeight(height)
-			childPath := path
-			if ctx.Logger != nil {
-				childPath = appendPath(path, i)
-			}
-			rendered[i], err = renderWithPath(slot, _ctx, childPath)
-			if err != nil {
-				logError(ctx.Logger, path, "container.render", err)
-				return "", err
-			}
-		}
-		return gloss.JoinVertical(gloss.Left, rendered...), nil
-	}
-
-	err := &ConfigError{Reason: ErrInvalidAxis}
-	logError(ctx.Logger, path, "container.axis", err)
-	return "", err
-}
-
-// RenderBlock renders a [Block] given the rendering context.
+// RenderBlock renders a [Block] given the rendering context and size.
 // It validates that frame and content (after clipping) fit in the allocation.
 // Styles are copied before mutation, so cached styles are safe to reuse.
-func RenderBlock[KID KeelID](block Block[KID], ctx Context[KID]) (string, error) {
+func RenderBlock[KID KeelID](ctx Context[KID], block Block[KID], size Size) (string, error) {
 	path := ""
 	if ctx.Logger != nil {
 		path = "/"
 	}
-	return renderBlockWithPath(block, ctx, path)
+	return renderBlockWithPath(block, ctx, size, path)
 }
 
-func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path string) (string, error) {
+func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], size Size, path string) (string, error) {
 	providedStyle := styleFor(ctx, block)
 
 	// Initialize to default values
@@ -192,22 +119,22 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 
 	}
 
-	if frameWidth > ctx.Width {
+	if frameWidth > size.Width {
 		err := &ExtentTooSmallError{
 			Axis:   AxisHorizontal,
 			Need:   frameWidth,
-			Have:   ctx.Width,
+			Have:   size.Width,
 			Source: sourceFor(block),
 			Reason: "frame",
 		}
 		logError(ctx.Logger, path, "block.frame", err)
 		return "", err
 	}
-	if frameHeight > ctx.Height {
+	if frameHeight > size.Height {
 		err := &ExtentTooSmallError{
 			Axis:   AxisVertical,
 			Need:   frameHeight,
-			Have:   ctx.Height,
+			Have:   size.Height,
 			Source: sourceFor(block),
 			Reason: "frame",
 		}
@@ -215,12 +142,12 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 		return "", err
 	}
 
-	availableWidth := ctx.Width - frameWidth
-	availableHeight := ctx.Height - frameHeight
+	availableWidth := size.Width - frameWidth
+	availableHeight := size.Height - frameHeight
 
 	info := RenderInfo{
-		Width:         ctx.Width,
-		Height:        ctx.Height,
+		Width:         size.Width,
+		Height:        size.Height,
 		ContentWidth:  availableWidth,
 		ContentHeight: availableHeight,
 		FrameWidth:    frameWidth,
@@ -286,7 +213,7 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 			err := &ExtentTooSmallError{
 				Axis:   AxisHorizontal,
 				Need:   frameWidth + contentWidth,
-				Have:   ctx.Width,
+				Have:   size.Width,
 				Source: sourceFor(block),
 				Reason: "content",
 			}
@@ -297,7 +224,7 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 			err := &ExtentTooSmallError{
 				Axis:   AxisVertical,
 				Need:   frameHeight + contentHeight,
-				Have:   ctx.Height,
+				Have:   size.Height,
 				Source: sourceFor(block),
 				Reason: "content",
 			}
@@ -310,7 +237,7 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 			err := &ExtentTooSmallError{
 				Axis:   AxisHorizontal,
 				Need:   frameWidth + contentWidth,
-				Have:   ctx.Width,
+				Have:   size.Width,
 				Source: sourceFor(block),
 				Reason: "content",
 			}
@@ -321,7 +248,7 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 			err := &ExtentTooSmallError{
 				Axis:   AxisVertical,
 				Need:   frameHeight + contentHeight,
-				Have:   ctx.Height,
+				Have:   size.Height,
 				Source: sourceFor(block),
 				Reason: "content",
 			}
@@ -336,8 +263,8 @@ func renderBlockWithPath[KID KeelID](block Block[KID], ctx Context[KID], path st
 		return "", err
 	}
 
-	outerWidth := ctx.Width - marginWidth - borderWidth
-	outerHeight := ctx.Height - marginHeight - borderHeight
+	outerWidth := size.Width - marginWidth - borderWidth
+	outerHeight := size.Height - marginHeight - borderHeight
 	style = style.
 		Width(outerWidth).
 		Height(outerHeight)

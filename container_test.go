@@ -78,7 +78,9 @@ func TestRenderContainerInvalidAxis(t *testing.T) {
 		slots: []Renderable{Panel(FlexUnit(), "a")},
 	}
 
-	_, err := RenderContainer(container, Context[string]{Width: 10, Height: 1})
+	ctx := Context[string]{}
+	size := Size{Width: 10, Height: 1}
+	_, err := RenderContainer(ctx, container, size)
 	if !errors.Is(err, ErrInvalidAxis) {
 		t.Fatalf("expected ErrInvalidAxis, got %v", err)
 	}

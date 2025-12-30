@@ -21,6 +21,14 @@ func ExampleSplit() keel.Renderable {
 	)
 }
 
+// ExampleResolvedSplit resolves the example layout at the given size.
+func ExampleResolvedSplit(width, height int) (keel.Resolved[string], error) {
+	layout := ExampleSplit()
+	ctx := keel.Context[string]{}
+	size := keel.Size{Width: width, Height: height}
+	return keel.Resolve[string](ctx, layout, size)
+}
+
 // ExampleSplitContentProvider returns content for the example layout.
 func ExampleSplitContentProvider(id string, _ keel.RenderInfo) (string, error) {
 	switch id {

@@ -19,9 +19,9 @@ func main() {
 
 	layout := examples.ExampleSplit()
 	context := keel.Context[string]{}.
-		WithSize(*width, *height).
 		WithContentProvider(examples.ExampleSplitContentProvider).
 		WithStyleProvider(examples.ExampleSplitStyleProvider)
+	size := keel.Size{Width: *width, Height: *height}
 
 	if *debug {
 		context = context.WithContentProvider(keel.DefaultDebugProvider[string])
@@ -41,7 +41,13 @@ func main() {
 		context = context.WithLogger(logger.Log)
 	}
 
-	rendered, err := keel.Render(layout, context)
+	resolved, err := keel.Resolve(context, layout, size)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	rendered, err := keel.RenderResolved(context, resolved)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

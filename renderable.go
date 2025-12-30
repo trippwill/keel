@@ -16,7 +16,7 @@ type Block[KID KeelID] interface {
 }
 
 // Container is a [Renderable] that splits its allocation across slots.
-// Slot access must be stable for the duration of a render pass.
+// Slot access must be stable for the duration of a resolve pass.
 type Container interface {
 	Renderable
 	GetAxis() Axis                     // Layout axis of the container

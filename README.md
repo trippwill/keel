@@ -14,8 +14,9 @@ returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
 - `Panel` is a block identified by a `KeelID`.
 - `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`, `FlexMax`, `FlexMinMax`) controls how space is
   allocated along the container axis.
+- `Size` describes the available width/height for resolve/render.
 - `FitMode` controls how content fits inside a panel.
-- `Context` provides size, `ContentProvider`, and `StyleProvider`.
+- `Context` provides `ContentProvider`, `StyleProvider`, and logging.
 - Flex max caps are soft: if all flex slots hit their max and space remains,
   the remainder is distributed ignoring max caps.
 
@@ -41,8 +42,6 @@ func main() {
 	)
 
 	ctx := keel.Context[string]{
-		Width:  80,
-		Height: 24,
 		ContentProvider: func(id string, _ keel.RenderInfo) (string, error) {
 			switch id {
 			case "header":
@@ -63,8 +62,9 @@ func main() {
 			return nil
 		},
 	}
+	size := keel.Size{Width: 80, Height: 24}
 
-	out, err := keel.Render(layout, ctx)
+	out, err := keel.Render(ctx, layout, size)
 	if err != nil {
 		panic(err)
 	}
@@ -85,6 +85,24 @@ layout := keel.Row(keel.FlexUnit(),
 )
 ```
 
+## Resolved layouts
+
+If you render repeatedly at the same size, resolve once and re-use the resolved
+tree until the width/height or layout changes.
+
+```go
+size := keel.Size{Width: 80, Height: 24}
+resolved, err := keel.Resolve(ctx, layout, size)
+if err != nil {
+	panic(err)
+}
+
+out, err := keel.RenderResolved(ctx, resolved)
+if err != nil {
+	panic(err)
+}
+```
+
 ## Logging
 
 Keel can emit render logs through a context logger. Log events include container
@@ -94,12 +112,12 @@ indices rooted at `/` (e.g. `/0/1`).
 ```go
 logger := keel.NewFileLogger(os.Stdout)
 ctx := keel.Context[string]{}.
-	WithSize(80, 24).
 	WithContentProvider(contentProvider).
 	WithStyleProvider(styleProvider).
 	WithLogger(logger.Log)
+size := keel.Size{Width: 80, Height: 24}
 
-out, err := keel.Render(layout, ctx)
+out, err := keel.Render(ctx, layout, size)
 ```
 
 The default message formats are available via `keel.LogEventFormats`, and you
