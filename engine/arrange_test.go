@@ -1,4 +1,4 @@
-package keel
+package engine
 
 import (
 	"errors"
@@ -16,7 +16,7 @@ func TestAllocateValidation(t *testing.T) {
 		{
 			name:  "negative total",
 			total: -1,
-			specs: []ExtentConstraint{Flex(1)},
+			specs: []ExtentConstraint{{Kind: ExtentFixed, Units: 1}},
 			err:   ErrConfigurationInvalid,
 		},
 		{
@@ -240,8 +240,8 @@ func TestArrangeMaxDistributesRemainder(t *testing.T) {
 
 func TestArrangeFlexMinMaxHonorsBounds(t *testing.T) {
 	specs := []ExtentConstraint{
-		FlexMinMax(1, 2, 4),
-		FlexUnit(),
+		{Kind: ExtentFlex, Units: 1, MinCells: 2, MaxCells: 4},
+		{Kind: ExtentFlex, Units: 1},
 	}
 
 	sizes, _, err := ArrangeExtents(6, specs)

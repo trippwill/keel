@@ -1,6 +1,9 @@
-package keel
+package engine
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 // NodeKind identifies the kind of node in an arranged layout tree.
 type NodeKind uint8
@@ -33,13 +36,9 @@ type LayoutNode[KID KeelID] struct {
 	Slots []LayoutNode[KID]
 }
 
-// arrange arranges a [Spec] tree into concrete allocations for the given size.
-func arrange[KID KeelID](r *Renderer[KID], spec Spec, size Size) (Layout[KID], error) {
+// Arrange arranges a [Spec] tree into concrete allocations for the given size.
+func Arrange[KID KeelID](spec Spec, size Size, logger LoggerFunc) (Layout[KID], error) {
 	path := ""
-	logger := LoggerFunc(nil)
-	if r != nil && r.config != nil {
-		logger = r.config.logger
-	}
 	if logger != nil {
 		path = "/"
 	}
@@ -119,8 +118,7 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 		return LayoutNode[KID]{}, err
 	}
 
-	logf(
-		logger,
+	logger.LogEvent(
 		path,
 		LogEventStackAlloc,
 		axis.String(),
@@ -170,4 +168,18 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 		Rect:  rect,
 		Slots: slots,
 	}, nil
+}
+
+func logError(logger LoggerFunc, path string, stage string, err error) {
+	if logger == nil || err == nil {
+		return
+	}
+	logger.LogEvent(path, LogEventRenderError, stage, err)
+}
+
+func appendPath(path string, index int) string {
+	if path == "/" {
+		return "/" + strconv.Itoa(index)
+	}
+	return path + "/" + strconv.Itoa(index)
 }

@@ -6,12 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/trippwill/keel/engine"
 )
 
 func TestFileLoggerWritesEntry(t *testing.T) {
 	var buf bytes.Buffer
 	logger := NewFileLogger(&buf)
-	logger.Log(LogEventFrameRender, "0/1", "ok")
+	logger.Log(engine.LogEventFrameRender, "0/1", "ok")
 
 	got := buf.String()
 	if got == "" {
@@ -24,7 +26,7 @@ func TestFileLoggerWritesEntry(t *testing.T) {
 
 func TestFileLoggerNilWriterNoPanic(t *testing.T) {
 	var logger *FileLogger
-	logger.Log(LogEventRenderError, "", "nope")
+	logger.Log(engine.LogEventRenderError, "", "nope")
 }
 
 func TestNewFileLoggerPath(t *testing.T) {
@@ -35,7 +37,7 @@ func TestNewFileLoggerPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	logger.Log(LogEventRenderError, "/", "oops")
+	logger.Log(engine.LogEventRenderError, "/", "oops")
 	if err := file.Close(); err != nil {
 		t.Fatalf("unexpected close error: %v", err)
 	}

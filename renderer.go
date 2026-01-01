@@ -2,10 +2,8 @@ package keel
 
 import (
 	gloss "github.com/charmbracelet/lipgloss"
+	"github.com/trippwill/keel/engine"
 )
-
-// KeelID is a comparable type used as a stable identifier for frames and resources.
-type KeelID comparable
 
 // StyleProvider returns a style for the given frame ID. Nil means "no style".
 // Returned styles are treated as immutable and are safe to cache; the renderer
@@ -20,7 +18,7 @@ type ContentProvider[KID KeelID] func(id KID, info FrameInfo) (string, error)
 // RenderConfig stores shared render settings like logging and debug state.
 // It is safe to share a single config across multiple renderers.
 type RenderConfig struct {
-	logger LoggerFunc
+	logger engine.LoggerFunc
 	debug  bool
 }
 
@@ -30,7 +28,7 @@ func NewRenderConfig() *RenderConfig {
 }
 
 // Logger returns the configured logger, if any.
-func (c *RenderConfig) Logger() LoggerFunc {
+func (c *RenderConfig) Logger() engine.LoggerFunc {
 	if c == nil {
 		return nil
 	}
@@ -38,7 +36,7 @@ func (c *RenderConfig) Logger() LoggerFunc {
 }
 
 // SetLogger sets the render logger.
-func (c *RenderConfig) SetLogger(logger LoggerFunc) {
+func (c *RenderConfig) SetLogger(logger engine.LoggerFunc) {
 	if c == nil {
 		return
 	}
@@ -67,7 +65,7 @@ type Renderer[KID KeelID] struct {
 	spec      Spec
 	style     StyleProvider[KID]
 	content   ContentProvider[KID]
-	layout    Layout[KID]
+	layout    engine.Layout[KID]
 	last      Size
 	hasLayout bool
 }

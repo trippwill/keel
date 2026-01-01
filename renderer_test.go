@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	gloss "github.com/charmbracelet/lipgloss"
+	"github.com/trippwill/keel/engine"
 )
 
 func TestRenderConfigAndRenderer(t *testing.T) {
 	style := func(id string) *gloss.Style { return nil }
 	content := func(id string, info FrameInfo) (string, error) { return "ok", nil }
-	logger := func(event LogEvent, path, msg string) {}
+	logger := func(event engine.LogEvent, path, msg string) {}
 
 	config := NewRenderConfig()
 	config.SetLogger(logger)

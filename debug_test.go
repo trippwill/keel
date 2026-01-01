@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	gloss "github.com/charmbracelet/lipgloss"
+	"github.com/trippwill/keel/engine"
 )
 
 func TestDefaultDebugProviderFitsContent(t *testing.T) {
@@ -16,7 +17,7 @@ func TestDefaultDebugProviderFitsContent(t *testing.T) {
 		ContentHeight: 2,
 		FrameWidth:    0,
 		FrameHeight:   0,
-		Fit:           FitExact,
+		Fit:           engine.FitExact,
 	}
 
 	got, err := provider(id, info)
@@ -83,7 +84,7 @@ func TestDefaultDebugProviderExpandedLines(t *testing.T) {
 		ContentHeight: 5,
 		FrameWidth:    4,
 		FrameHeight:   2,
-		Fit:           FitWrapClip,
+		Fit:           engine.FitWrapClip,
 	}
 
 	got, err := provider(id, info)

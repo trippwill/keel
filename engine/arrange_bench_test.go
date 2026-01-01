@@ -1,40 +1,38 @@
-package keel_test
+package engine
 
 import (
 	"fmt"
 	"testing"
-
-	"github.com/trippwill/keel"
 )
 
 type benchStack struct {
-	slots []keel.Spec
+	slots []Spec
 }
 
 func (s *benchStack) Len() int {
 	return len(s.slots)
 }
 
-func (s *benchStack) Slot(i int) (keel.Spec, bool) {
+func (s *benchStack) Slot(i int) (Spec, bool) {
 	if i < 0 || i >= len(s.slots) {
 		return nil, false
 	}
 	return s.slots[i], true
 }
 
-func (s *benchStack) Axis() keel.Axis {
-	return keel.AxisHorizontal
+func (s *benchStack) Axis() Axis {
+	return AxisHorizontal
 }
 
-func (s *benchStack) Extent() keel.ExtentConstraint {
-	return keel.FlexMin(1, 1)
+func (s *benchStack) Extent() ExtentConstraint {
+	return ExtentConstraint{Kind: ExtentFlex, MinCells: 1, MaxCells: 1}
 }
 
 type benchSpec struct {
-	extent keel.ExtentConstraint
+	extent ExtentConstraint
 }
 
-func (b benchSpec) Extent() keel.ExtentConstraint {
+func (b benchSpec) Extent() ExtentConstraint {
 	return b.extent
 }
 
@@ -49,7 +47,7 @@ func BenchmarkArrangeStack(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {
-				if _, _, err := keel.ArrangeStack(total, stack); err != nil {
+				if _, _, err := ArrangeStack(total, stack); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -57,21 +55,21 @@ func BenchmarkArrangeStack(b *testing.B) {
 	}
 }
 
-func benchSlots(count int) ([]keel.Spec, int) {
-	slots := make([]keel.Spec, count)
+func benchSlots(count int) ([]Spec, int) {
+	slots := make([]Spec, count)
 	required := 0
 	for i := range count {
-		var extent keel.ExtentConstraint
+		var extent ExtentConstraint
 		if i%3 == 0 {
-			extent = keel.Fixed(3)
+			extent = ExtentConstraint{Kind: ExtentFixed, Units: 3}
 		} else {
-			extent = keel.FlexMin(1, 1)
+			extent = ExtentConstraint{Kind: ExtentFlex, Units: 1, MinCells: 1}
 		}
 		slots[i] = benchSpec{extent: extent}
 		switch extent.Kind {
-		case keel.ExtentFixed:
+		case ExtentFixed:
 			required += extent.Units
-		case keel.ExtentFlex:
+		case ExtentFlex:
 			required += extent.MinCells
 		}
 	}

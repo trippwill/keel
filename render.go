@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	gloss "github.com/charmbracelet/lipgloss"
+	"github.com/trippwill/keel/engine"
 )
 
 // Render arranges and renders the stored spec at the given size.
@@ -22,13 +23,13 @@ func (r *Renderer[KID]) Render(size Size) (string, error) {
 	return r.renderLayout(layout)
 }
 
-func (r *Renderer[KID]) ensureLayout(size Size) (Layout[KID], error) {
+func (r *Renderer[KID]) ensureLayout(size Size) (engine.Layout[KID], error) {
 	if r.hasLayout && r.last == size {
 		return r.layout, nil
 	}
-	layout, err := arrange(r, r.spec, size)
+	layout, err := engine.Arrange[KID](r.spec, size, r.config.logger)
 	if err != nil {
-		return Layout[KID]{}, err
+		return engine.Layout[KID]{}, err
 	}
 	r.layout = layout
 	r.last = size
@@ -36,7 +37,7 @@ func (r *Renderer[KID]) ensureLayout(size Size) (Layout[KID], error) {
 	return layout, nil
 }
 
-func (r *Renderer[KID]) renderLayout(layout Layout[KID]) (string, error) {
+func (r *Renderer[KID]) renderLayout(layout engine.Layout[KID]) (string, error) {
 	path := ""
 	logger := rendererLogger(r)
 	if logger != nil {
@@ -45,16 +46,16 @@ func (r *Renderer[KID]) renderLayout(layout Layout[KID]) (string, error) {
 	return renderLayoutWithPath(layout.Root, r, path)
 }
 
-func renderLayoutWithPath[KID KeelID](node LayoutNode[KID], r *Renderer[KID], path string) (string, error) {
+func renderLayoutWithPath[KID KeelID](node engine.LayoutNode[KID], r *Renderer[KID], path string) (string, error) {
 	logger := rendererLogger(r)
 	switch node.Kind {
-	case NodeStack:
+	case engine.NodeStack:
 		if len(node.Slots) == 0 {
 			return "", nil
 		}
 		axis := node.Axis
-		if axis != AxisHorizontal && axis != AxisVertical {
-			err := &ConfigError{Reason: ErrInvalidAxis}
+		if axis != engine.AxisHorizontal && axis != engine.AxisVertical {
+			err := &engine.ConfigError{Reason: engine.ErrInvalidAxis}
 			logError(logger, path, "stack.axis", err)
 			return "", err
 		}
@@ -73,27 +74,27 @@ func renderLayoutWithPath[KID KeelID](node LayoutNode[KID], r *Renderer[KID], pa
 			rendered[i] = out
 		}
 
-		if axis == AxisHorizontal {
+		if axis == engine.AxisHorizontal {
 			return gloss.JoinHorizontal(gloss.Top, rendered...), nil
 		}
 		return gloss.JoinVertical(gloss.Left, rendered...), nil
 
-	case NodeFrame:
+	case engine.NodeFrame:
 		if node.Frame == nil {
-			err := &ConfigError{Reason: ErrUnknownSpec}
+			err := &engine.ConfigError{Reason: engine.ErrUnknownSpec}
 			logError(logger, path, "dispatch", err)
 			return "", err
 		}
 		size := Size{Width: node.Rect.Width, Height: node.Rect.Height}
 		return renderFrameWithPath(node.Frame, r, size, path)
 	default:
-		err := &ConfigError{Reason: ErrUnknownSpec}
+		err := &engine.ConfigError{Reason: engine.ErrUnknownSpec}
 		logError(logger, path, "dispatch", err)
 		return "", err
 	}
 }
 
-func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], size Size, path string) (string, error) {
+func renderFrameWithPath[KID KeelID](frame engine.FrameSpec[KID], r *Renderer[KID], size Size, path string) (string, error) {
 	logger := rendererLogger(r)
 	providedStyle := styleFor(r, frame)
 
@@ -120,8 +121,8 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 	}
 
 	if frameWidth > size.Width {
-		err := &ExtentTooSmallError{
-			Axis:   AxisHorizontal,
+		err := &engine.ExtentTooSmallError{
+			Axis:   engine.AxisHorizontal,
 			Need:   frameWidth,
 			Have:   size.Width,
 			Source: sourceFor(frame),
@@ -131,8 +132,8 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 		return "", err
 	}
 	if frameHeight > size.Height {
-		err := &ExtentTooSmallError{
-			Axis:   AxisVertical,
+		err := &engine.ExtentTooSmallError{
+			Axis:   engine.AxisVertical,
 			Need:   frameHeight,
 			Have:   size.Height,
 			Source: sourceFor(frame),
@@ -158,7 +159,7 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 	logf(
 		logger,
 		path,
-		LogEventFrameRender,
+		engine.LogEventFrameRender,
 		frame.ID(),
 		info.Width,
 		info.Height,
@@ -183,7 +184,7 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 
 	contentToRender := contentForMeasure
 	switch info.Fit {
-	case FitClip:
+	case engine.FitClip:
 		if availableWidth <= 0 || availableHeight <= 0 {
 			contentToRender = ""
 			break
@@ -192,7 +193,7 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 			MaxWidth(availableWidth).
 			MaxHeight(availableHeight).
 			Render(contentToRender)
-	case FitWrapClip:
+	case engine.FitWrapClip:
 		if availableWidth <= 0 || availableHeight <= 0 {
 			contentToRender = ""
 			break
@@ -202,7 +203,7 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 			MaxWidth(availableWidth).
 			MaxHeight(availableHeight).
 			Render(contentToRender)
-	case FitWrapStrict:
+	case engine.FitWrapStrict:
 		if availableWidth > 0 {
 			contentToRender = gloss.NewStyle().
 				Width(availableWidth).
@@ -210,8 +211,8 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 		}
 		contentWidth, contentHeight := gloss.Size(contentToRender)
 		if contentWidth > availableWidth {
-			err := &ExtentTooSmallError{
-				Axis:   AxisHorizontal,
+			err := &engine.ExtentTooSmallError{
+				Axis:   engine.AxisHorizontal,
 				Need:   frameWidth + contentWidth,
 				Have:   size.Width,
 				Source: sourceFor(frame),
@@ -221,8 +222,8 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 			return "", err
 		}
 		if contentHeight > availableHeight {
-			err := &ExtentTooSmallError{
-				Axis:   AxisVertical,
+			err := &engine.ExtentTooSmallError{
+				Axis:   engine.AxisVertical,
 				Need:   frameHeight + contentHeight,
 				Have:   size.Height,
 				Source: sourceFor(frame),
@@ -231,11 +232,11 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 			logError(logger, path, "frame.content", err)
 			return "", err
 		}
-	case FitExact:
+	case engine.FitExact:
 		contentWidth, contentHeight := gloss.Size(contentToRender)
 		if contentWidth > availableWidth {
-			err := &ExtentTooSmallError{
-				Axis:   AxisHorizontal,
+			err := &engine.ExtentTooSmallError{
+				Axis:   engine.AxisHorizontal,
 				Need:   frameWidth + contentWidth,
 				Have:   size.Width,
 				Source: sourceFor(frame),
@@ -245,8 +246,8 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 			return "", err
 		}
 		if contentHeight > availableHeight {
-			err := &ExtentTooSmallError{
-				Axis:   AxisVertical,
+			err := &engine.ExtentTooSmallError{
+				Axis:   engine.AxisVertical,
 				Need:   frameHeight + contentHeight,
 				Have:   size.Height,
 				Source: sourceFor(frame),
@@ -255,10 +256,10 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 			logError(logger, path, "frame.content", err)
 			return "", err
 		}
-	case FitOverflow:
+	case engine.FitOverflow:
 		// No fitting or validation; let lipgloss render freely.
 	default:
-		err := &ConfigError{}
+		err := &engine.ConfigError{}
 		logError(logger, path, "frame.fit", err)
 		return "", err
 	}
@@ -272,7 +273,7 @@ func renderFrameWithPath[KID KeelID](frame FrameSpec[KID], r *Renderer[KID], siz
 	return style.Render(contentToRender), nil
 }
 
-func styleFor[KID KeelID](r *Renderer[KID], frame FrameSpec[KID]) *gloss.Style {
+func styleFor[KID KeelID](r *Renderer[KID], frame engine.FrameSpec[KID]) *gloss.Style {
 	if r == nil || r.style == nil {
 		return nil
 	}
@@ -298,22 +299,22 @@ func effectiveContentProvider[KID KeelID](r *Renderer[KID]) ContentProvider[KID]
 	return r.content
 }
 
-func rendererLogger[KID KeelID](r *Renderer[KID]) LoggerFunc {
+func rendererLogger[KID KeelID](r *Renderer[KID]) engine.LoggerFunc {
 	if r == nil || r.config == nil {
 		return nil
 	}
 	return r.config.logger
 }
 
-func sourceFor[KID KeelID](frame FrameSpec[KID]) string {
+func sourceFor[KID KeelID](frame engine.FrameSpec[KID]) string {
 	return fmt.Sprintf("frame %v", frame.ID())
 }
 
-func logf(logger LoggerFunc, path string, event LogEvent, args ...any) {
+func logf(logger engine.LoggerFunc, path string, event engine.LogEvent, args ...any) {
 	if logger == nil {
 		return
 	}
-	msgFormat, ok := LogEventFormats[event]
+	msgFormat, ok := engine.LogEventFormats[event]
 	if !ok {
 		msgFormat = "event=%v"
 		args = []any{event}
@@ -321,11 +322,11 @@ func logf(logger LoggerFunc, path string, event LogEvent, args ...any) {
 	logger(event, path, fmt.Sprintf(msgFormat, args...))
 }
 
-func logError(logger LoggerFunc, path string, stage string, err error) {
+func logError(logger engine.LoggerFunc, path string, stage string, err error) {
 	if logger == nil || err == nil {
 		return
 	}
-	logf(logger, path, LogEventRenderError, stage, err)
+	logf(logger, path, engine.LogEventRenderError, stage, err)
 }
 
 func appendPath(path string, index int) string {
