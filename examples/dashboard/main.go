@@ -18,14 +18,16 @@ func main() {
 	flag.Parse()
 
 	spec := examples.ExampleSplit()
-	context := keel.NewContext(
+	config := keel.NewRenderConfig()
+	config.SetDebug(*debug)
+	renderer := keel.NewRendererWithConfig(
+		config,
+		spec,
 		examples.ExampleSplitStyleProvider,
-		examples.ExampleSplitContentProvider)
+		examples.ExampleSplitContentProvider,
+	)
 	size := keel.Size{Width: *width, Height: *height}
 
-	if *debug {
-		context = context.WithContentProvider(keel.DefaultDebugProvider)
-	}
 	if *logPath != "" {
 		logger, file, err := keel.NewFileLoggerPath(*logPath)
 		if err != nil {
@@ -38,16 +40,10 @@ func main() {
 				fmt.Println(err)
 			}
 		}()
-		context = context.WithLogger(logger.Log)
+		config.SetLogger(logger.Log)
 	}
 
-	layout, err := keel.Arrange(context, spec, size)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	rendered, err := keel.Render(context, layout)
+	rendered, err := renderer.Render(size)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

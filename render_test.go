@@ -7,8 +7,8 @@ import (
 	gloss "github.com/charmbracelet/lipgloss"
 )
 
-func makeContentProvider(result string) func(string, RenderInfo) (string, error) {
-	return func(_ string, _ RenderInfo) (string, error) {
+func makeContentProvider(result string) func(string, FrameInfo) (string, error) {
+	return func(_ string, _ FrameInfo) (string, error) {
 		return result, nil
 	}
 }
@@ -48,19 +48,38 @@ func (s flakyStack) Slot(index int) (Spec, bool) {
 	return s.slots[index], true
 }
 
+type countingStack struct {
+	axis  Axis
+	slots []Spec
+	calls int
+}
+
+func (s countingStack) Extent() ExtentConstraint { return FlexUnit() }
+
+func (s countingStack) Axis() Axis { return s.axis }
+
+func (s countingStack) Len() int { return len(s.slots) }
+
+func (s *countingStack) Slot(index int) (Spec, bool) {
+	if index < 0 || index >= len(s.slots) {
+		return nil, false
+	}
+	s.calls++
+	return s.slots[index], true
+}
+
 func TestRender_UnknownSpec(t *testing.T) {
-	ctx := Context[string]{}
-	size := Size{Width: 1, Height: 1}
-	_, err := RenderSpec(ctx, dummySpec{extent: FlexUnit()}, size)
+	renderer := NewRenderer[string](dummySpec{extent: FlexUnit()}, nil, nil)
+	_, err := renderer.Render(Size{Width: 1, Height: 1})
 	if !errors.Is(err, ErrUnknownSpec) {
 		t.Fatalf("expected ErrUnknownSpec, got %v", err)
 	}
 }
 
 func TestRenderStack_Empty(t *testing.T) {
-	ctx := Context[string]{}
+	renderer := NewRenderer[string](Row(FlexUnit()), nil, nil)
 	size := Size{Width: 5, Height: 2}
-	got, err := RenderSpec(ctx, Row(FlexUnit()), size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -76,12 +95,10 @@ func TestRenderStack_AllocTooSmallVertical(t *testing.T) {
 		Panel(FlexMin(1, 3), "b"),
 	)
 
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider(""),
-	}
+	renderer := NewRenderer[string](split, nil, makeContentProvider(""))
 	size := Size{Width: 2, Height: 4}
 
-	_, err := RenderSpec(ctx, split, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -104,9 +121,8 @@ func TestRenderStack_UnstableSlot(t *testing.T) {
 		calls: make([]int, 1),
 	}
 
-	ctx := Context[string]{}
-	size := Size{Width: 1, Height: 1}
-	_, err := RenderSpec(ctx, stack, size)
+	renderer := NewRenderer[string](stack, nil, nil)
+	_, err := renderer.Render(Size{Width: 1, Height: 1})
 	var slotErr *SlotError
 	if !errors.As(err, &slotErr) {
 		t.Fatalf("expected SlotError, got %v", err)
@@ -120,15 +136,14 @@ func TestRenderStack_UnstableSlot(t *testing.T) {
 }
 
 func TestRenderStack_InvalidAxis(t *testing.T) {
-	stack := flakyStack{
+	stack := testStack{
 		axis:  Axis(99),
 		slots: []Spec{Panel(FlexUnit(), "a")},
-		calls: make([]int, 1),
 	}
 
-	ctx := Context[string]{}
+	renderer := NewRenderer[string](stack, nil, nil)
 	size := Size{Width: 1, Height: 1}
-	_, err := RenderStackSpec(ctx, stack, size)
+	_, err := renderer.Render(size)
 	if !errors.Is(err, ErrInvalidAxis) {
 		t.Fatalf("expected ErrInvalidAxis, got %v", err)
 	}
@@ -137,9 +152,9 @@ func TestRenderStack_InvalidAxis(t *testing.T) {
 func TestRenderStack_ArrangeSlotError(t *testing.T) {
 	split := Row(FlexUnit(), nil)
 
-	ctx := Context[string]{}
+	renderer := NewRenderer[string](split, nil, nil)
 	size := Size{Width: 1, Height: 1}
-	_, err := RenderSpec(ctx, split, size)
+	_, err := renderer.Render(size)
 	var slotErr *SlotError
 	if !errors.As(err, &slotErr) {
 		t.Fatalf("expected SlotError, got %v", err)
@@ -149,6 +164,38 @@ func TestRenderStack_ArrangeSlotError(t *testing.T) {
 	}
 	if !errors.Is(err, ErrNilSlot) {
 		t.Fatalf("expected ErrNilSlot")
+	}
+}
+
+func TestRenderInvalidateClearsCachedLayout(t *testing.T) {
+	spec := &countingStack{
+		axis:  AxisHorizontal,
+		slots: []Spec{Panel(FlexUnit(), "a")},
+	}
+	renderer := NewRenderer[string](spec, nil, makeContentProvider("ok"))
+	size := Size{Width: 2, Height: 1}
+
+	_, err := renderer.Render(size)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	initialCalls := spec.calls
+
+	_, err = renderer.Render(size)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if spec.calls != initialCalls {
+		t.Fatalf("expected cached layout reuse, got %d calls", spec.calls)
+	}
+
+	renderer.Invalidate()
+	_, err = renderer.Render(size)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if spec.calls == initialCalls {
+		t.Fatalf("expected layout re-arrange after invalidate")
 	}
 }
 
@@ -165,12 +212,11 @@ func TestRender_LoggerEvents(t *testing.T) {
 	layout := Row(FlexUnit(),
 		Panel(FlexUnit(), "a"),
 	)
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider(""),
-	}.WithLogger(logger)
+	renderer := NewRenderer[string](layout, nil, makeContentProvider(""))
+	renderer.Config().SetLogger(logger)
 	size := Size{Width: 3, Height: 1}
 
-	_, err := RenderSpec(ctx, layout, size)
+	_, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -208,9 +254,10 @@ func TestRender_LoggerError(t *testing.T) {
 		})
 	}
 
-	ctx := Context[string]{}.WithLogger(logger)
+	renderer := NewRenderer[string](Panel(FlexUnit(), "a"), nil, nil)
+	renderer.Config().SetLogger(logger)
 	size := Size{Width: 1, Height: 1}
-	_, err := RenderSpec(ctx, Panel(FlexUnit(), "a"), size)
+	_, err := renderer.Render(size)
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -234,12 +281,10 @@ func TestRenderSplit_AllocTooSmall(t *testing.T) {
 		Panel(FlexMin(1, 3), "b"),
 	)
 
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider(""),
-	}
+	renderer := NewRenderer[string](split, nil, makeContentProvider(""))
 	size := Size{Width: 4, Height: 1}
 
-	_, err := RenderSpec(ctx, split, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -264,14 +309,12 @@ func TestRenderSplit_EmptySlots(t *testing.T) {
 		{name: "col", layout: Col(FlexUnit())},
 	}
 
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider(""),
-	}
 	size := Size{Width: 10, Height: 3}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := RenderSpec(ctx, tc.layout, size)
+			renderer := NewRenderer[string](tc.layout, nil, makeContentProvider(""))
+			got, err := renderer.Render(size)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -288,19 +331,16 @@ func TestRenderSplit_SlotChromeTooTall(t *testing.T) {
 		Panel(Fixed(2), "a"),
 	)
 
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			if id != "a" {
-				return nil
-			}
-			s := gloss.NewStyle().Border(gloss.NormalBorder())
-			return &s
-		},
-		ContentProvider: makeContentProvider(""),
-	}
+	renderer := NewRenderer[string](split, func(id string) *gloss.Style {
+		if id != "a" {
+			return nil
+		}
+		s := gloss.NewStyle().Border(gloss.NormalBorder())
+		return &s
+	}, makeContentProvider(""))
 	size := Size{Width: 2, Height: 1}
 
-	_, err := RenderSpec(ctx, split, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -319,19 +359,16 @@ func TestRenderSplit_SlotChromeTooWide(t *testing.T) {
 		Panel(Fixed(1), "a"),
 	)
 
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			if id != "a" {
-				return nil
-			}
-			s := gloss.NewStyle().Border(gloss.NormalBorder())
-			return &s
-		},
-		ContentProvider: makeContentProvider(""),
-	}
+	renderer := NewRenderer[string](split, func(id string) *gloss.Style {
+		if id != "a" {
+			return nil
+		}
+		s := gloss.NewStyle().Border(gloss.NormalBorder())
+		return &s
+	}, makeContentProvider(""))
 	size := Size{Width: 1, Height: 3}
 
-	_, err := RenderSpec(ctx, split, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -346,9 +383,9 @@ func TestRenderSplit_SlotChromeTooWide(t *testing.T) {
 
 func TestRenderPanel_ContentProviderRequired(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
-	ctx := Context[string]{}
+	renderer := NewRenderer[string](panel, nil, nil)
 	size := Size{Width: 1, Height: 1}
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -360,23 +397,20 @@ func TestRenderPanel_ContentProviderInfo(t *testing.T) {
 		Border(gloss.NormalBorder()).
 		Padding(1, 2).
 		Margin(1, 1)
-	var got RenderInfo
+	var got FrameInfo
 	var gotID string
 	calls := 0
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			return &style
-		},
-		ContentProvider: func(id string, info RenderInfo) (string, error) {
-			gotID = id
-			got = info
-			calls++
-			return "ok", nil
-		},
-	}
+	renderer := NewRenderer[string](panel, func(id string) *gloss.Style {
+		return &style
+	}, func(id string, info FrameInfo) (string, error) {
+		gotID = id
+		got = info
+		calls++
+		return "ok", nil
+	})
 	size := Size{Width: 20, Height: 10}
 
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -410,16 +444,13 @@ func TestRenderPanel_ContentProviderInfo(t *testing.T) {
 
 func TestRenderPanel_ChromeTooLarge(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			s := gloss.NewStyle().Border(gloss.NormalBorder())
-			return &s
-		},
-		ContentProvider: makeContentProvider(""),
-	}
+	renderer := NewRenderer[string](panel, func(id string) *gloss.Style {
+		s := gloss.NewStyle().Border(gloss.NormalBorder())
+		return &s
+	}, makeContentProvider(""))
 	size := Size{Width: 1, Height: 1}
 
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -432,15 +463,12 @@ func TestRenderPanel_ChromeTooLarge(t *testing.T) {
 func TestRenderPanel_StyleApplied(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
 	style := gloss.NewStyle().Bold(true)
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			return &style
-		},
-		ContentProvider: makeContentProvider("hi"),
-	}
+	renderer := NewRenderer[string](panel, func(id string) *gloss.Style {
+		return &style
+	}, makeContentProvider("hi"))
 	size := Size{Width: 5, Height: 1}
 
-	got, err := RenderSpec(ctx, panel, size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -452,12 +480,10 @@ func TestRenderPanel_StyleApplied(t *testing.T) {
 
 func TestRenderPanel_ContentTooWide(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider("abcd"),
-	}
+	renderer := NewRenderer[string](panel, nil, makeContentProvider("abcd"))
 	size := Size{Width: 2, Height: 1}
 
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -475,12 +501,10 @@ func TestRenderPanel_ContentTooWide(t *testing.T) {
 
 func TestRenderPanel_FitClipTruncatesContent(t *testing.T) {
 	panel := PanelClip(FlexUnit(), "a")
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider("abcd"),
-	}
+	renderer := NewRenderer[string](panel, nil, makeContentProvider("abcd"))
 	size := Size{Width: 2, Height: 1}
 
-	got, err := RenderSpec(ctx, panel, size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -491,12 +515,10 @@ func TestRenderPanel_FitClipTruncatesContent(t *testing.T) {
 
 func TestRenderPanel_FitClipLargerThanContentStillFits(t *testing.T) {
 	panel := PanelClip(FlexUnit(), "a")
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider("ok"),
-	}
+	renderer := NewRenderer[string](panel, nil, makeContentProvider("ok"))
 	size := Size{Width: 4, Height: 1}
 
-	got, err := RenderSpec(ctx, panel, size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -508,12 +530,10 @@ func TestRenderPanel_FitClipLargerThanContentStillFits(t *testing.T) {
 
 func TestRenderPanel_FitWrapTruncatesHeight(t *testing.T) {
 	panel := PanelWrap(FlexUnit(), "a")
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider("abcd efgh"),
-	}
+	renderer := NewRenderer[string](panel, nil, makeContentProvider("abcd efgh"))
 	size := Size{Width: 4, Height: 1}
 
-	got, err := RenderSpec(ctx, panel, size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -524,12 +544,10 @@ func TestRenderPanel_FitWrapTruncatesHeight(t *testing.T) {
 
 func TestRenderPanel_FitOverflowAllowsOverflow(t *testing.T) {
 	panel := PanelOverflow(FlexUnit(), "a")
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider("abcd"),
-	}
+	renderer := NewRenderer[string](panel, nil, makeContentProvider("abcd"))
 	size := Size{Width: 2, Height: 1}
 
-	got, err := RenderSpec(ctx, panel, size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -541,18 +559,15 @@ func TestRenderPanel_FitOverflowAllowsOverflow(t *testing.T) {
 
 func TestRenderPanel_TransformAffectsSize(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			s := gloss.NewStyle().Transform(func(s string) string {
-				return s + "xx"
-			})
-			return &s
-		},
-		ContentProvider: makeContentProvider("ab"),
-	}
+	renderer := NewRenderer[string](panel, func(id string) *gloss.Style {
+		s := gloss.NewStyle().Transform(func(s string) string {
+			return s + "xx"
+		})
+		return &s
+	}, makeContentProvider("ab"))
 	size := Size{Width: 3, Height: 1}
 
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -567,18 +582,15 @@ func TestRenderPanel_TransformAffectsSize(t *testing.T) {
 
 func TestRenderPanel_TransformAffectsHeight(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			s := gloss.NewStyle().Transform(func(s string) string {
-				return s + "\nX"
-			})
-			return &s
-		},
-		ContentProvider: makeContentProvider("hi"),
-	}
+	renderer := NewRenderer[string](panel, func(id string) *gloss.Style {
+		s := gloss.NewStyle().Transform(func(s string) string {
+			return s + "\nX"
+		})
+		return &s
+	}, makeContentProvider("hi"))
 	size := Size{Width: 2, Height: 1}
 
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -593,12 +605,10 @@ func TestRenderPanel_TransformAffectsHeight(t *testing.T) {
 
 func TestRenderPanel_FitWrapStrictTooTall(t *testing.T) {
 	panel := PanelWrapStrict(FlexUnit(), "a")
-	ctx := Context[string]{
-		ContentProvider: makeContentProvider("abcd efgh"),
-	}
+	renderer := NewRenderer[string](panel, nil, makeContentProvider("abcd efgh"))
 	size := Size{Width: 4, Height: 1}
 
-	_, err := RenderSpec(ctx, panel, size)
+	_, err := renderer.Render(size)
 	var tooSmall *ExtentTooSmallError
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
@@ -613,19 +623,16 @@ func TestRenderPanel_FitWrapStrictTooTall(t *testing.T) {
 
 func TestRenderPanel_OutputMatchesAllocation(t *testing.T) {
 	panel := Panel(FlexUnit(), "a")
-	ctx := Context[string]{
-		StyleProvider: func(id string) *gloss.Style {
-			s := gloss.NewStyle().
-				Border(gloss.NormalBorder()).
-				Padding(1).
-				Margin(1)
-			return &s
-		},
-		ContentProvider: makeContentProvider("hi"),
-	}
+	renderer := NewRenderer[string](panel, func(id string) *gloss.Style {
+		s := gloss.NewStyle().
+			Border(gloss.NormalBorder()).
+			Padding(1).
+			Margin(1)
+		return &s
+	}, makeContentProvider("hi"))
 	size := Size{Width: 10, Height: 8}
 
-	got, err := RenderSpec(ctx, panel, size)
+	got, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

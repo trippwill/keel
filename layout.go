@@ -33,14 +33,18 @@ type LayoutNode[KID KeelID] struct {
 	Slots []LayoutNode[KID]
 }
 
-// Arrange arranges a [Spec] tree into concrete allocations for the given size.
-func Arrange[KID KeelID](ctx Context[KID], spec Spec, size Size) (Layout[KID], error) {
+// arrange arranges a [Spec] tree into concrete allocations for the given size.
+func arrange[KID KeelID](r *Renderer[KID], spec Spec, size Size) (Layout[KID], error) {
 	path := ""
-	if ctx.Logger != nil {
+	logger := LoggerFunc(nil)
+	if r != nil && r.config != nil {
+		logger = r.config.logger
+	}
+	if logger != nil {
 		path = "/"
 	}
 	rect := Rect{X: 0, Y: 0, Width: size.Width, Height: size.Height}
-	root, err := arrangeWithPath[KID](spec, rect, path, ctx.Logger)
+	root, err := arrangeWithPath[KID](spec, rect, path, logger)
 	if err != nil {
 		return Layout[KID]{}, err
 	}

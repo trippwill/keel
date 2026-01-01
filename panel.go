@@ -55,7 +55,15 @@ func PanelOverflow[KID KeelID](extent ExtentConstraint, id KID) PanelSpec[KID] {
 }
 
 // PanelFit creates a new PanelSpec with the given extent, content fit mode, and ID.
-// The extent describes total allocation along the stack axis.
+//
+// Arguments:
+//
+//	extent: describes total allocation along the stack axis.
+//	fit: content fitting mode
+//	id: the [KeelID] to assign to the panel
+//
+// Returns:
+//   - A new [PanelSpec] instance configured with the provided arguments.
 func PanelFit[KID KeelID](extent ExtentConstraint, fit FitMode, id KID) PanelSpec[KID] {
 	return PanelSpec[KID]{
 		ExtentConstraint: extent,

@@ -8,6 +8,10 @@ import (
 var (
 	// ErrConfigurationInvalid indicates an invalid layout configuration.
 	ErrConfigurationInvalid = errors.New("configuration invalid")
+	// ErrRendererMissing indicates a missing renderer.
+	ErrRendererMissing = errors.New("renderer missing")
+	// ErrSpecMissing indicates a missing layout spec.
+	ErrSpecMissing = errors.New("spec missing")
 	// ErrContentProviderMissing indicates a missing content provider.
 	ErrContentProviderMissing = errors.New("content provider missing")
 	// ErrUnknownFrameID indicates a content/style request for an unknown ID.

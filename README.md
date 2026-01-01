@@ -16,7 +16,7 @@ returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
   allocated along the stack axis.
 - `Size` describes the available width/height for arrange/render.
 - `FitMode` controls how content fits inside a frame.
-- `Context` provides `ContentProvider`, `StyleProvider`, and logging.
+- `Renderer` provides `ContentProvider`, `StyleProvider`, and render configuration.
 - Flex max caps are soft: if all flex slots hit their max and space remains,
   the remainder is distributed ignoring max caps.
 
@@ -41,8 +41,16 @@ func main() {
 		),
 	)
 
-	ctx := keel.Context[string]{
-		ContentProvider: func(id string, _ keel.RenderInfo) (string, error) {
+	renderer := keel.NewRenderer(
+		layout,
+		func(id string) *gloss.Style {
+			if id == "header" {
+				style := gloss.NewStyle().Bold(true).Padding(0, 1)
+				return &style
+			}
+			return nil
+		},
+		func(id string, _ keel.FrameInfo) (string, error) {
 			switch id {
 			case "header":
 				return "Dashboard", nil
@@ -54,17 +62,10 @@ func main() {
 				return "", &keel.UnknownFrameIDError{ID: id}
 			}
 		},
-		StyleProvider: func(id string) *gloss.Style {
-			if id == "header" {
-				style := gloss.NewStyle().Bold(true).Padding(0, 1)
-				return &style
-			}
-			return nil
-		},
-	}
+	)
 	size := keel.Size{Width: 80, Height: 24}
 
-	out, err := keel.RenderSpec(ctx, layout, size)
+	out, err := renderer.Render(size)
 	if err != nil {
 		panic(err)
 	}
@@ -87,17 +88,14 @@ layout := keel.Row(keel.FlexUnit(),
 
 ## Arranged layouts
 
-If you render repeatedly at the same size, arrange once and re-use the arranged
-tree until the width/height or layout changes.
+Renderers cache the arranged layout for the last size. Call `Render` with the
+current size; it will re-arrange only when the size changes. If you mutate a
+spec in place, call `renderer.Invalidate()` to force a re-arrange. For a new
+spec, construct a new renderer.
 
 ```go
 size := keel.Size{Width: 80, Height: 24}
-layout, err := keel.Arrange(ctx, layout, size)
-if err != nil {
-	panic(err)
-}
-
-out, err := keel.Render(ctx, layout)
+out, err := renderer.Render(size)
 if err != nil {
 	panic(err)
 }
@@ -105,19 +103,17 @@ if err != nil {
 
 ## Logging
 
-Keel can emit render logs through a context logger. Log events include stack
+Keel can emit render logs through the renderer config logger. Log events include stack
 allocations, frame renders, and render errors. Paths are slash-delimited slot
 indices rooted at `/` (e.g. `/0/1`).
 
 ```go
 logger := keel.NewFileLogger(os.Stdout)
-ctx := keel.Context[string]{}.
-	WithContentProvider(contentProvider).
-	WithStyleProvider(styleProvider).
-	WithLogger(logger.Log)
+renderer := keel.NewRenderer(layout, styleProvider, contentProvider)
+renderer.Config().SetLogger(logger.Log)
 size := keel.Size{Width: 80, Height: 24}
 
-out, err := keel.RenderSpec(ctx, layout, size)
+out, err := renderer.Render(size)
 ```
 
 The default message formats are available via `keel.LogEventFormats`, and you

@@ -78,9 +78,9 @@ func TestRenderStackInvalidAxis(t *testing.T) {
 		slots: []Spec{Panel(FlexUnit(), "a")},
 	}
 
-	ctx := Context[string]{}
+	renderer := NewRenderer[string](stack, nil, nil)
 	size := Size{Width: 10, Height: 1}
-	_, err := RenderStackSpec(ctx, stack, size)
+	_, err := renderer.Render(size)
 	if !errors.Is(err, ErrInvalidAxis) {
 		t.Fatalf("expected ErrInvalidAxis, got %v", err)
 	}

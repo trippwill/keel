@@ -10,6 +10,16 @@ type SplitSpec struct {
 var _ StackSpec = SplitSpec{}
 
 // Split creates a new split with the given axis and extent.
+//
+// Arguments:
+//
+//	axis:   Axis along which to split (horizontal or vertical)
+//	extent: Total extent constraint for the split along the stack axis
+//	slots:  Slot specifications to include in the split
+//
+// Returns:
+//   - A new [SplitSpec] configured with the provided arguments.
+//
 // Slots are stored as references; mutating slots after creation affects the Split.
 // Panics on invalid axis.
 func Split(axis Axis, extent ExtentConstraint, slots ...Spec) SplitSpec {

@@ -8,8 +8,9 @@
 // intrinsic measurement,
 // constraint solving, or stateful rendering.
 //
-// For repeated renders, you can arrange a layout once with [Arrange] and
-// render it later with [Render] to avoid re-running allocation.
+// For repeated renders, store a spec on a [Renderer] and call [Renderer.Render].
+// The renderer caches the arranged layout for the last size; call [Renderer.Invalidate]
+// after mutating a spec.
 //
 // Box model (used by frames):
 //
@@ -34,7 +35,7 @@
 //   - lipgloss.Style.Width/Height describe the inner box (Content + Padding),
 //     excluding border and margins.
 //   - lipgloss.Style.GetFrameSize returns Margin + Padding + Border.
-//   - [ContentProvider] receives the frame ID and [RenderInfo] with allocation and
+//   - [ContentProvider] receives the frame ID and [FrameInfo] with allocation and
 //     content box sizes, plus the frame's [FitMode].
 //   - FitMode controls whether content is wrapped, clipped, or allowed to
 //     overflow the content box before rendering.

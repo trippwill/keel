@@ -11,9 +11,9 @@ func TestArrangeBuildsRects(t *testing.T) {
 		),
 	)
 
-	ctx := Context[string]{}
+	renderer := NewRenderer[string](layout, nil, nil)
 	size := Size{Width: 10, Height: 5}
-	arranged, err := Arrange(ctx, layout, size)
+	arranged, err := arrange(renderer, layout, size)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,37 +50,35 @@ func TestArrangeBuildsRects(t *testing.T) {
 	}
 }
 
-func TestRenderMatchesRenderSpec(t *testing.T) {
+func TestRenderMatchesLayoutRender(t *testing.T) {
 	layout := Row(FlexUnit(),
 		Panel(Fixed(2), "a"),
 		Panel(FlexUnit(), "b"),
 	)
 
-	ctx := Context[string]{
-		ContentProvider: func(id string, _ RenderInfo) (string, error) {
-			switch id {
-			case "a":
-				return "aa", nil
-			case "b":
-				return "bbb", nil
-			default:
-				return "", &UnknownFrameIDError{ID: id}
-			}
-		},
-	}
+	renderer := NewRenderer[string](layout, nil, func(id string, _ FrameInfo) (string, error) {
+		switch id {
+		case "a":
+			return "aa", nil
+		case "b":
+			return "bbb", nil
+		default:
+			return "", &UnknownFrameIDError{ID: id}
+		}
+	})
 	size := Size{Width: 5, Height: 1}
 
-	want, err := RenderSpec(ctx, layout, size)
+	want, err := renderer.Render(size)
 	if err != nil {
 		t.Fatalf("unexpected render error: %v", err)
 	}
 
-	arranged, err := Arrange(ctx, layout, size)
+	arranged, err := arrange(renderer, layout, size)
 	if err != nil {
 		t.Fatalf("unexpected arrange error: %v", err)
 	}
 
-	got, err := Render(ctx, arranged)
+	got, err := renderer.renderLayout(arranged)
 	if err != nil {
 		t.Fatalf("unexpected layout render error: %v", err)
 	}

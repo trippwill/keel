@@ -21,16 +21,16 @@ func ExampleSplit() keel.Spec {
 	)
 }
 
-// ExampleLayoutSplit arranges the example layout at the given size.
-func ExampleLayoutSplit(width, height int) (keel.Layout[string], error) {
+// ExampleRenderSplit renders the example layout at the given size.
+func ExampleRenderSplit(width, height int) (string, error) {
 	layout := ExampleSplit()
-	ctx := keel.Context[string]{}
+	renderer := keel.NewRenderer(layout, ExampleSplitStyleProvider, ExampleSplitContentProvider)
 	size := keel.Size{Width: width, Height: height}
-	return keel.Arrange(ctx, layout, size)
+	return renderer.Render(size)
 }
 
 // ExampleSplitContentProvider returns content for the example layout.
-func ExampleSplitContentProvider(id string, _ keel.RenderInfo) (string, error) {
+func ExampleSplitContentProvider(id string, _ keel.FrameInfo) (string, error) {
 	switch id {
 	case "header":
 		return "Chiplog Dashboard", nil
