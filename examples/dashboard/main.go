@@ -7,6 +7,7 @@ import (
 
 	"github.com/trippwill/keel"
 	"github.com/trippwill/keel/examples"
+	"github.com/trippwill/keel/logging"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	spec := examples.ExampleSplit()
-	config := keel.NewRenderConfig()
+	config := keel.NewConfig()
 	config.SetDebug(*debug)
 	renderer := keel.NewRendererWithConfig(
 		config,
@@ -29,7 +30,7 @@ func main() {
 	size := keel.Size{Width: *width, Height: *height}
 
 	if *logPath != "" {
-		logger, file, err := keel.NewFileLoggerPath(*logPath)
+		logger, file, err := logging.NewFileLoggerPath(*logPath)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

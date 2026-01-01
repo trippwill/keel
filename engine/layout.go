@@ -3,6 +3,9 @@ package engine
 import (
 	"errors"
 	"strconv"
+
+	"github.com/trippwill/keel/core"
+	"github.com/trippwill/keel/logging"
 )
 
 // NodeKind identifies the kind of node in an arranged layout tree.
@@ -22,22 +25,22 @@ type Rect struct {
 }
 
 // Layout holds a layout tree arranged to concrete allocations.
-type Layout[KID KeelID] struct {
+type Layout[KID core.KeelID] struct {
 	Width, Height int
 	Root          LayoutNode[KID]
 }
 
 // LayoutNode represents an arranged layout node.
-type LayoutNode[KID KeelID] struct {
+type LayoutNode[KID core.KeelID] struct {
 	Kind  NodeKind
-	Axis  Axis
+	Axis  core.Axis
 	Rect  Rect
-	Frame FrameSpec[KID]
+	Frame core.FrameSpec[KID]
 	Slots []LayoutNode[KID]
 }
 
-// Arrange arranges a [Spec] tree into concrete allocations for the given size.
-func Arrange[KID KeelID](spec Spec, size Size, logger LoggerFunc) (Layout[KID], error) {
+// Arrange arranges a [core.Spec] tree into concrete allocations for the given size.
+func Arrange[KID core.KeelID](spec core.Spec, size core.Size, logger logging.LoggerFunc) (Layout[KID], error) {
 	path := ""
 	if logger != nil {
 		path = "/"
@@ -54,24 +57,24 @@ func Arrange[KID KeelID](spec Spec, size Size, logger LoggerFunc) (Layout[KID], 
 	}, nil
 }
 
-func arrangeWithPath[KID KeelID](spec Spec, rect Rect, path string, logger LoggerFunc) (LayoutNode[KID], error) {
+func arrangeWithPath[KID core.KeelID](spec core.Spec, rect Rect, path string, logger logging.LoggerFunc) (LayoutNode[KID], error) {
 	switch n := spec.(type) {
-	case StackSpec:
+	case core.StackSpec:
 		return arrangeStackWithPath[KID](n, rect, path, logger)
-	case FrameSpec[KID]:
+	case core.FrameSpec[KID]:
 		return LayoutNode[KID]{
 			Kind:  NodeFrame,
 			Rect:  rect,
 			Frame: n,
 		}, nil
 	default:
-		err := &ConfigError{Reason: ErrUnknownSpec}
+		err := &core.ConfigError{Reason: core.ErrUnknownSpec}
 		logError(logger, path, "dispatch", err)
 		return LayoutNode[KID]{}, err
 	}
 }
 
-func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, logger LoggerFunc) (LayoutNode[KID], error) {
+func arrangeStackWithPath[KID core.KeelID](stack core.StackSpec, rect Rect, path string, logger logging.LoggerFunc) (LayoutNode[KID], error) {
 	length := stack.Len()
 	if length <= 0 {
 		return LayoutNode[KID]{
@@ -82,8 +85,8 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 	}
 
 	axis := stack.Axis()
-	if axis != AxisHorizontal && axis != AxisVertical {
-		err := &ConfigError{Reason: ErrInvalidAxis}
+	if axis != core.AxisHorizontal && axis != core.AxisVertical {
+		err := &core.ConfigError{Reason: core.ErrInvalidAxis}
 		logError(logger, path, "stack.axis", err)
 		return LayoutNode[KID]{}, err
 	}
@@ -95,18 +98,18 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 	}
 
 	total := rect.Width
-	if axis == AxisVertical {
+	if axis == core.AxisVertical {
 		total = rect.Height
 	}
 
 	sizes, required, err := ArrangeExtents(total, extents)
 	if err != nil {
-		if errors.Is(err, ErrExtentTooSmall) {
+		if errors.Is(err, core.ErrExtentTooSmall) {
 			source := "horizontal split"
-			if axis == AxisVertical {
+			if axis == core.AxisVertical {
 				source = "vertical split"
 			}
-			err = &ExtentTooSmallError{
+			err = &core.ExtentTooSmallError{
 				Axis:   axis,
 				Need:   required,
 				Have:   total,
@@ -120,7 +123,7 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 
 	logger.LogEvent(
 		path,
-		LogEventStackAlloc,
+		logging.LogEventStackAlloc,
 		axis.String(),
 		total,
 		len(sizes),
@@ -133,13 +136,13 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 	for i, size := range sizes {
 		slot, ok := stack.Slot(i)
 		if !ok || slot == nil {
-			err := &SlotError{Index: i, Reason: ErrNilSlot}
+			err := &core.SlotError{Index: i, Reason: core.ErrNilSlot}
 			logError(logger, path, "stack.slot", err)
 			return LayoutNode[KID]{}, err
 		}
 
 		slotRect := rect
-		if axis == AxisHorizontal {
+		if axis == core.AxisHorizontal {
 			slotRect.X += offset
 			slotRect.Width = size
 		} else {
@@ -170,11 +173,11 @@ func arrangeStackWithPath[KID KeelID](stack StackSpec, rect Rect, path string, l
 	}, nil
 }
 
-func logError(logger LoggerFunc, path string, stage string, err error) {
+func logError(logger logging.LoggerFunc, path string, stage string, err error) {
 	if logger == nil || err == nil {
 		return
 	}
-	logger.LogEvent(path, LogEventRenderError, stage, err)
+	logger.LogEvent(path, logging.LogEventRenderError, stage, err)
 }
 
 func appendPath(path string, index int) string {

@@ -1,4 +1,4 @@
-package engine
+package logging
 
 import (
 	"fmt"
@@ -37,8 +37,9 @@ func (e LogEvent) String() string {
 // LoggerFunc receives a render event, a slash-delimited slot path, and a formatted message.
 type LoggerFunc func(event LogEvent, path, msg string)
 
-func (f *LoggerFunc) LogEvent(path string, event LogEvent, args ...any) {
-	if f == nil || *f == nil {
+// LogEvent formats a log entry for the event and invokes the logger.
+func (f LoggerFunc) LogEvent(path string, event LogEvent, args ...any) {
+	if f == nil {
 		return
 	}
 	msgFormat, ok := LogEventFormats[event]
@@ -46,5 +47,5 @@ func (f *LoggerFunc) LogEvent(path string, event LogEvent, args ...any) {
 		msgFormat = "event=%v"
 		args = []any{event}
 	}
-	(*f)(event, path, fmt.Sprintf(msgFormat, args...))
+	f(event, path, fmt.Sprintf(msgFormat, args...))
 }

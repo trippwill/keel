@@ -8,15 +8,15 @@ import (
 // ExampleSplit returns the example layout hierarchy used across demos and tests.
 func ExampleSplit() keel.Spec {
 	return keel.Col(keel.FlexUnit(),
-		keel.PanelClip(keel.Fixed(3), "header"),
+		keel.Clip(keel.Fixed(3), "header"),
 		keel.Row(keel.FlexMin(1, 6),
-			keel.PanelWrap(keel.FlexUnit(), "nav"),
-			keel.Panel(keel.FlexMin(2, 8), "feed"),
-			keel.Panel(keel.Fixed(19), "detail"),
+			keel.Wrap(keel.FlexUnit(), "nav"),
+			keel.Exact(keel.FlexMin(2, 8), "feed"),
+			keel.Exact(keel.Fixed(19), "detail"),
 		),
 		keel.Row(keel.Fixed(3),
-			keel.PanelClip(keel.FlexMax(1, 10), "status"),
-			keel.Panel(keel.FlexUnit(), "help"),
+			keel.Clip(keel.FlexMax(1, 10), "status"),
+			keel.Exact(keel.FlexUnit(), "help"),
 		),
 	)
 }

@@ -15,53 +15,9 @@ type StyleProvider[KID KeelID] func(id KID) *gloss.Style
 // FitMode will be applied after content is retrieved.
 type ContentProvider[KID KeelID] func(id KID, info FrameInfo) (string, error)
 
-// RenderConfig stores shared render settings like logging and debug state.
-// It is safe to share a single config across multiple renderers.
-type RenderConfig struct {
-	logger engine.LoggerFunc
-	debug  bool
-}
-
-// NewRenderConfig returns a new render config with default settings.
-func NewRenderConfig() *RenderConfig {
-	return &RenderConfig{}
-}
-
-// Logger returns the configured logger, if any.
-func (c *RenderConfig) Logger() engine.LoggerFunc {
-	if c == nil {
-		return nil
-	}
-	return c.logger
-}
-
-// SetLogger sets the render logger.
-func (c *RenderConfig) SetLogger(logger engine.LoggerFunc) {
-	if c == nil {
-		return
-	}
-	c.logger = logger
-}
-
-// Debug reports whether debug rendering is enabled.
-func (c *RenderConfig) Debug() bool {
-	if c == nil {
-		return false
-	}
-	return c.debug
-}
-
-// SetDebug toggles debug rendering.
-func (c *RenderConfig) SetDebug(debug bool) {
-	if c == nil {
-		return
-	}
-	c.debug = debug
-}
-
 // Renderer owns render providers and uses a shared config for logging/debugging.
 type Renderer[KID KeelID] struct {
-	config    *RenderConfig
+	config    *Config
 	spec      Spec
 	style     StyleProvider[KID]
 	content   ContentProvider[KID]
@@ -73,7 +29,7 @@ type Renderer[KID KeelID] struct {
 // NewRenderer returns a renderer for the given spec with a fresh config.
 func NewRenderer[KID KeelID](spec Spec, styleProvider StyleProvider[KID], contentProvider ContentProvider[KID]) *Renderer[KID] {
 	return &Renderer[KID]{
-		config:  NewRenderConfig(),
+		config:  NewConfig(),
 		spec:    spec,
 		style:   styleProvider,
 		content: contentProvider,
@@ -81,9 +37,9 @@ func NewRenderer[KID KeelID](spec Spec, styleProvider StyleProvider[KID], conten
 }
 
 // NewRendererWithConfig returns a renderer for the given spec using the provided config.
-func NewRendererWithConfig[KID KeelID](config *RenderConfig, spec Spec, styleProvider StyleProvider[KID], contentProvider ContentProvider[KID]) *Renderer[KID] {
+func NewRendererWithConfig[KID KeelID](config *Config, spec Spec, styleProvider StyleProvider[KID], contentProvider ContentProvider[KID]) *Renderer[KID] {
 	if config == nil {
-		config = NewRenderConfig()
+		config = NewConfig()
 	}
 	return &Renderer[KID]{
 		config:  config,
@@ -94,24 +50,24 @@ func NewRendererWithConfig[KID KeelID](config *RenderConfig, spec Spec, stylePro
 }
 
 // Config returns the renderer's config, allocating one if needed.
-func (r *Renderer[KID]) Config() *RenderConfig {
+func (r *Renderer[KID]) Config() *Config {
 	if r == nil {
 		return nil
 	}
 	if r.config == nil {
-		r.config = NewRenderConfig()
+		r.config = NewConfig()
 	}
 	return r.config
 }
 
 // SetConfig replaces the renderer config.
 // Invalidates cached layout state.
-func (r *Renderer[KID]) SetConfig(config *RenderConfig) {
+func (r *Renderer[KID]) SetConfig(config *Config) {
 	if r == nil {
 		return
 	}
 	if config == nil {
-		config = NewRenderConfig()
+		config = NewConfig()
 	}
 	r.config = config
 	r.Invalidate()

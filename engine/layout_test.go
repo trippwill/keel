@@ -1,64 +1,68 @@
 package engine
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/trippwill/keel/core"
+)
 
 type testFrame struct {
-	ExtentConstraint
+	core.ExtentConstraint
 	id  string
-	fit FitMode
+	fit core.FitMode
 }
 
 func (f testFrame) ID() string { return f.id }
 
-func (f testFrame) Fit() FitMode {
+func (f testFrame) Fit() core.FitMode {
 	if f.fit == 0 {
-		return FitExact
+		return core.FitExact
 	}
 	return f.fit
 }
 
 type testStack struct {
-	ExtentConstraint
-	axis  Axis
-	slots []Spec
+	core.ExtentConstraint
+	axis  core.Axis
+	slots []core.Spec
 }
 
-func (s testStack) Axis() Axis { return s.axis }
+func (s testStack) Axis() core.Axis { return s.axis }
 
 func (s testStack) Len() int { return len(s.slots) }
 
-func (s testStack) Slot(index int) (Spec, bool) {
+func (s testStack) Slot(index int) (core.Spec, bool) {
 	if index < 0 || index >= len(s.slots) {
 		return nil, false
 	}
 	return s.slots[index], true
 }
 
-func fixed(units int) ExtentConstraint {
-	return ExtentConstraint{Kind: ExtentFixed, Units: units, MinCells: units, MaxCells: 0}
+func fixed(units int) core.ExtentConstraint {
+	return core.ExtentConstraint{Kind: core.ExtentFixed, Units: units, MinCells: units, MaxCells: 0}
 }
 
-func flex(units int) ExtentConstraint {
-	return ExtentConstraint{Kind: ExtentFlex, Units: units, MinCells: 0, MaxCells: 0}
+func flex(units int) core.ExtentConstraint {
+	return core.ExtentConstraint{Kind: core.ExtentFlex, Units: units, MinCells: 0, MaxCells: 0}
 }
 
 func TestArrangeBuildsRects(t *testing.T) {
 	layout := testStack{
 		ExtentConstraint: flex(1),
-		axis:             AxisHorizontal,
-		slots: []Spec{
+		axis:             core.AxisHorizontal,
+		slots: []core.Spec{
 			testFrame{ExtentConstraint: fixed(3), id: "a"},
 			testStack{
 				ExtentConstraint: flex(1),
-				axis:             AxisVertical,
-				slots: []Spec{
+				axis:             core.AxisVertical,
+				slots: []core.Spec{
 					testFrame{ExtentConstraint: fixed(2), id: "b"},
 					testFrame{ExtentConstraint: flex(1), id: "c"},
 				},
 			},
 		},
 	}
-	size := Size{Width: 10, Height: 5}
+	size := core.Size{Width: 10, Height: 5}
 	arranged, err := Arrange[string](layout, size, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

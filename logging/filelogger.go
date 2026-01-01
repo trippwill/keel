@@ -1,12 +1,10 @@
-package keel
+package logging
 
 import (
 	"fmt"
 	"io"
 	"os"
 	"sync"
-
-	"github.com/trippwill/keel/engine"
 )
 
 // FileLogger writes render log events to the provided writer.
@@ -32,7 +30,7 @@ func NewFileLoggerPath(path string) (*FileLogger, *os.File, error) {
 }
 
 // Log writes a single log entry.
-func (l *FileLogger) Log(event engine.LogEvent, path, msg string) {
+func (l *FileLogger) Log(event LogEvent, path, msg string) {
 	if l == nil || l.w == nil {
 		return
 	}

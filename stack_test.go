@@ -4,15 +4,16 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/trippwill/keel/core"
 	"github.com/trippwill/keel/engine"
 )
 
 type testStack struct {
-	axis  engine.Axis
+	axis  core.Axis
 	slots []Spec
 }
 
-func (s testStack) Axis() engine.Axis { return s.axis }
+func (s testStack) Axis() core.Axis { return s.axis }
 
 func (s testStack) Len() int { return len(s.slots) }
 
@@ -23,10 +24,10 @@ func (s testStack) Slot(index int) (Spec, bool) {
 	return s.slots[index], true
 }
 
-func (s testStack) Extent() engine.ExtentConstraint { return FlexUnit() }
+func (s testStack) Extent() ExtentConstraint { return FlexUnit() }
 
 func TestArrangeStackEmptyStack(t *testing.T) {
-	stack := testStack{axis: engine.AxisHorizontal}
+	stack := testStack{axis: core.AxisHorizontal}
 
 	sizes, required, err := engine.ArrangeStack(10, stack)
 	if err != nil {
@@ -41,7 +42,7 @@ func TestArrangeStackEmptyStack(t *testing.T) {
 }
 
 func TestArrangeStackEmptyStackVertical(t *testing.T) {
-	stack := testStack{axis: engine.AxisVertical}
+	stack := testStack{axis: core.AxisVertical}
 
 	sizes, required, err := engine.ArrangeStack(10, stack)
 	if err != nil {
@@ -57,33 +58,33 @@ func TestArrangeStackEmptyStackVertical(t *testing.T) {
 
 func TestArrangeStackNilChild(t *testing.T) {
 	stack := testStack{
-		axis:  engine.AxisHorizontal,
+		axis:  core.AxisHorizontal,
 		slots: []Spec{nil},
 	}
 
 	_, _, err := engine.ArrangeStack(10, stack)
-	var slotErr *engine.SlotError
+	var slotErr *SlotError
 	if !errors.As(err, &slotErr) {
 		t.Fatalf("expected SlotError, got %v", err)
 	}
 	if slotErr.Index != 0 {
 		t.Fatalf("expected index 0, got %d", slotErr.Index)
 	}
-	if !errors.Is(err, engine.ErrNilSlot) {
+	if !errors.Is(err, ErrNilSlot) {
 		t.Fatalf("expected ErrNilSlot")
 	}
 }
 
 func TestRenderStackInvalidAxis(t *testing.T) {
 	stack := testStack{
-		axis:  engine.Axis(99),
-		slots: []Spec{Panel(FlexUnit(), "a")},
+		axis:  core.Axis(99),
+		slots: []Spec{Exact(FlexUnit(), "a")},
 	}
 
 	renderer := NewRenderer[string](stack, nil, nil)
 	size := Size{Width: 10, Height: 1}
 	_, err := renderer.Render(size)
-	if !errors.Is(err, engine.ErrInvalidAxis) {
+	if !errors.Is(err, ErrInvalidAxis) {
 		t.Fatalf("expected ErrInvalidAxis, got %v", err)
 	}
 }

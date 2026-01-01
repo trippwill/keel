@@ -1,11 +1,14 @@
+//go:generate stringer -type=Axis -trimprefix=Axis
 package engine
+
+import "github.com/trippwill/keel/core"
 
 // ArrangeStack distributes a total number of cells across a stack.
 //
 // Arguments:
 //
 //	total: The total cells to distribute.
-//	stack: The [StackSpec] whose slots will be allocated.
+//	stack: The [core.StackSpec] whose slots will be allocated.
 //
 // Returns:
 //   - Per-slot sizes ([]int)
@@ -13,7 +16,7 @@ package engine
 //   - Error, if allocation fails
 //
 // This function mirrors the allocation rules used by stacks. The slot extents are determined by calling Slot(i).Extent() on the stack.
-func ArrangeStack(total int, stack StackSpec) ([]int, int, error) {
+func ArrangeStack(total int, stack core.StackSpec) ([]int, int, error) {
 	extents, err := GetStackExtents(stack)
 	if err != nil {
 		return nil, 0, err
@@ -24,14 +27,14 @@ func ArrangeStack(total int, stack StackSpec) ([]int, int, error) {
 // GetStackExtents retrieves the extents of all slots in a stack.
 //
 // Returns:
-// - Slice of ExtentConstraint for each slot
+// - Slice of [core.ExtentConstraint] for each slot
 // - Error, if any slot is nil
-func GetStackExtents(stack StackSpec) ([]ExtentConstraint, error) {
-	extents := make([]ExtentConstraint, stack.Len())
+func GetStackExtents(stack core.StackSpec) ([]core.ExtentConstraint, error) {
+	extents := make([]core.ExtentConstraint, stack.Len())
 	for i := range extents {
 		slot, ok := stack.Slot(i)
 		if !ok || slot == nil {
-			return nil, &SlotError{Index: i, Reason: ErrNilSlot}
+			return nil, &core.SlotError{Index: i, Reason: core.ErrNilSlot}
 		}
 
 		extents[i] = slot.Extent()
@@ -45,15 +48,15 @@ func GetStackExtents(stack StackSpec) ([]ExtentConstraint, error) {
 // Arguments:
 //
 //	total:    The total number of cells to distribute.
-//	extents: The ExtentConstraints for each slot.
+//	extents: The [core.ExtentConstraint] values for each slot.
 //
 // Returns:
 //   - Per-slot sizes ([]int)
 //   - Minimum required total (int)
 //   - Error, if allocation fails
-func ArrangeExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
+func ArrangeExtents(total int, extents []core.ExtentConstraint) ([]int, int, error) {
 	if total < 0 {
-		return nil, 0, &ConfigError{Reason: ErrInvalidTotal}
+		return nil, 0, &core.ConfigError{Reason: core.ErrInvalidTotal}
 	}
 
 	count := len(extents)
@@ -68,7 +71,7 @@ func ArrangeExtents(total int, extents []ExtentConstraint) ([]int, int, error) {
 	}
 
 	if required > total {
-		return nil, required, ErrExtentTooSmall
+		return nil, required, core.ErrExtentTooSmall
 	}
 
 	// Pass 2: distribute leftover space to flex extents.
@@ -101,7 +104,7 @@ type flexSpec struct {
 	max   int
 }
 
-func seedSizes(sizes []int, extents []ExtentConstraint) (int, int, bool, bool, error) {
+func seedSizes(sizes []int, extents []core.ExtentConstraint) (int, int, bool, bool, error) {
 	required := 0
 	flexUnits := 0
 	hasFlex := false
@@ -110,24 +113,24 @@ func seedSizes(sizes []int, extents []ExtentConstraint) (int, int, bool, bool, e
 	for i := range extents {
 		spec := extents[i]
 		if spec.Units <= 0 {
-			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentUnits}
+			return required, flexUnits, hasFlex, hasFlexMax, &core.ExtentError{Index: i, Reason: core.ErrInvalidExtentUnits}
 		}
 		if spec.MinCells < 0 {
-			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMinCells}
+			return required, flexUnits, hasFlex, hasFlexMax, &core.ExtentError{Index: i, Reason: core.ErrInvalidExtentMinCells}
 		}
 		if spec.MaxCells < 0 {
-			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMaxCells}
+			return required, flexUnits, hasFlex, hasFlexMax, &core.ExtentError{Index: i, Reason: core.ErrInvalidExtentMaxCells}
 		}
 
 		switch spec.Kind {
-		case ExtentFixed:
+		case core.ExtentFixed:
 			if spec.Units < spec.MinCells {
-				return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMin}
+				return required, flexUnits, hasFlex, hasFlexMax, &core.ExtentError{Index: i, Reason: core.ErrInvalidExtentMin}
 			}
 			sizes[i] = spec.Units
-		case ExtentFlex:
+		case core.ExtentFlex:
 			if spec.MaxCells > 0 && spec.MaxCells < spec.MinCells {
-				return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentMax}
+				return required, flexUnits, hasFlex, hasFlexMax, &core.ExtentError{Index: i, Reason: core.ErrInvalidExtentMax}
 			}
 			sizes[i] = spec.MinCells
 			flexUnits += spec.Units
@@ -136,7 +139,7 @@ func seedSizes(sizes []int, extents []ExtentConstraint) (int, int, bool, bool, e
 				hasFlexMax = true
 			}
 		default:
-			return required, flexUnits, hasFlex, hasFlexMax, &ExtentError{Index: i, Reason: ErrInvalidExtentKind}
+			return required, flexUnits, hasFlex, hasFlexMax, &core.ExtentError{Index: i, Reason: core.ErrInvalidExtentKind}
 		}
 
 		required += sizes[i]
@@ -145,10 +148,10 @@ func seedSizes(sizes []int, extents []ExtentConstraint) (int, int, bool, bool, e
 	return required, flexUnits, hasFlex, hasFlexMax, nil
 }
 
-func collectFlexSpecs(extents []ExtentConstraint) []flexSpec {
+func collectFlexSpecs(extents []core.ExtentConstraint) []flexSpec {
 	flexSpecs := make([]flexSpec, 0, len(extents))
 	for i, spec := range extents {
-		if spec.Kind != ExtentFlex {
+		if spec.Kind != core.ExtentFlex {
 			continue
 		}
 		flexSpecs = append(flexSpecs, flexSpec{
@@ -266,7 +269,7 @@ func maxFlexAdd(max int, size int, remaining int) int {
 	return max - size
 }
 
-func distributeFlexIgnoringMax(sizes []int, extents []ExtentConstraint, flexUnits int, leftover int) {
+func distributeFlexIgnoringMax(sizes []int, extents []core.ExtentConstraint, flexUnits int, leftover int) {
 	if leftover <= 0 {
 		return
 	}
@@ -276,7 +279,7 @@ func distributeFlexIgnoringMax(sizes []int, extents []ExtentConstraint, flexUnit
 
 	remainder := leftover
 	for i, spec := range extents {
-		if spec.Kind != ExtentFlex {
+		if spec.Kind != core.ExtentFlex {
 			continue
 		}
 		add := leftover * spec.Units / flexUnits
@@ -287,7 +290,7 @@ func distributeFlexIgnoringMax(sizes []int, extents []ExtentConstraint, flexUnit
 	if remainder > 0 {
 		for i := 0; i < len(extents) && remainder > 0; i++ {
 			spec := extents[i]
-			if spec.Kind != ExtentFlex {
+			if spec.Kind != core.ExtentFlex {
 				continue
 			}
 			sizes[i]++

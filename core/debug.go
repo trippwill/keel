@@ -1,4 +1,4 @@
-package keel
+package core
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// DefaultDebugProvider returns a debug content provider that fits the content box.
+// DebugContentProvider returns a debug content provider that fits the content box.
 // It truncates lines to ContentWidth and caps the number of lines to ContentHeight.
-func DefaultDebugProvider[KID KeelID](id KID, info FrameInfo) (string, error) {
+func DebugContentProvider[KID KeelID](id KID, info FrameInfo) (string, error) {
 	if info.ContentWidth <= 0 || info.ContentHeight <= 0 {
 		return "", nil
 	}

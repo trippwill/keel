@@ -3,44 +3,44 @@ package keel
 import (
 	"testing"
 
-	"github.com/trippwill/keel/engine"
+	"github.com/trippwill/keel/core"
 )
 
 func TestExtentConstraintHelpers(t *testing.T) {
 	cases := []struct {
 		name string
-		got  engine.ExtentConstraint
-		want engine.ExtentConstraint
+		got  ExtentConstraint
+		want ExtentConstraint
 	}{
 		{
 			name: "flex unit",
 			got:  FlexUnit(),
-			want: engine.ExtentConstraint{Kind: engine.ExtentFlex, Units: 1, MinCells: 0, MaxCells: 0},
+			want: ExtentConstraint{Kind: core.ExtentFlex, Units: 1, MinCells: 0, MaxCells: 0},
 		},
 		{
 			name: "fixed",
 			got:  Fixed(3),
-			want: engine.ExtentConstraint{Kind: engine.ExtentFixed, Units: 3, MinCells: 3, MaxCells: 0},
+			want: ExtentConstraint{Kind: core.ExtentFixed, Units: 3, MinCells: 3, MaxCells: 0},
 		},
 		{
 			name: "flex",
 			got:  Flex(2),
-			want: engine.ExtentConstraint{Kind: engine.ExtentFlex, Units: 2, MinCells: 0, MaxCells: 0},
+			want: ExtentConstraint{Kind: core.ExtentFlex, Units: 2, MinCells: 0, MaxCells: 0},
 		},
 		{
 			name: "flex min",
 			got:  FlexMin(2, 5),
-			want: engine.ExtentConstraint{Kind: engine.ExtentFlex, Units: 2, MinCells: 5, MaxCells: 0},
+			want: ExtentConstraint{Kind: core.ExtentFlex, Units: 2, MinCells: 5, MaxCells: 0},
 		},
 		{
 			name: "flex max",
 			got:  FlexMax(2, 5),
-			want: engine.ExtentConstraint{Kind: engine.ExtentFlex, Units: 2, MinCells: 0, MaxCells: 5},
+			want: ExtentConstraint{Kind: core.ExtentFlex, Units: 2, MinCells: 0, MaxCells: 5},
 		},
 		{
 			name: "flex min max",
 			got:  FlexMinMax(2, 3, 5),
-			want: engine.ExtentConstraint{Kind: engine.ExtentFlex, Units: 2, MinCells: 3, MaxCells: 5},
+			want: ExtentConstraint{Kind: core.ExtentFlex, Units: 2, MinCells: 3, MaxCells: 5},
 		},
 	}
 
@@ -53,7 +53,7 @@ func TestExtentConstraintHelpers(t *testing.T) {
 	}
 }
 
-func TestExtentConstraintengineExtent(t *testing.T) {
+func TestExtentConstraintExtent(t *testing.T) {
 	spec := FlexMinMax(2, 1, 4)
 	if got := spec.Extent(); got != spec {
 		t.Fatalf("expected %v, got %v", spec, got)

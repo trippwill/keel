@@ -11,11 +11,11 @@ returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
 ## Concepts
 
 - `Row` / `Col` define stacks that split space along an axis.
-- `Panel` is a frame identified by a `KeelID`.
+- Frame constructors (`Exact`, `Clip`, `Wrap`, `WrapStrict`, `Overflow`) identify frames by `KeelID`.
 - `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`, `FlexMax`, `FlexMinMax`) controls how space is
   allocated along the stack axis.
 - `Size` describes the available width/height for arrange/render.
-- `FitMode` controls how content fits inside a frame.
+- Fit modes (`Exact`, `Clip`, `Wrap`, `WrapStrict`, `Overflow`) control how content fits inside a frame.
 - `Renderer` provides `ContentProvider`, `StyleProvider`, and render configuration.
 - Flex max caps are soft: if all flex slots hit their max and space remains,
   the remainder is distributed ignoring max caps.
@@ -34,10 +34,10 @@ import (
 
 func main() {
 	layout := keel.Col(keel.FlexUnit(),
-		keel.Panel(keel.Fixed(3), "header"),
+		keel.Exact(keel.Fixed(3), "header"),
 		keel.Row(keel.FlexUnit(),
-			keel.Panel(keel.FlexMin(1, 10), "nav"),
-			keel.Panel(keel.FlexMin(2, 20), "body"),
+			keel.Exact(keel.FlexMin(1, 10), "nav"),
+			keel.Exact(keel.FlexMin(2, 20), "body"),
 		),
 	)
 
@@ -81,8 +81,8 @@ Here's a small example using soft max caps:
 
 ```go
 layout := keel.Row(keel.FlexUnit(),
-	keel.Panel(keel.FlexMinMax(1, 10, 20), "nav"),
-	keel.Panel(keel.FlexMax(2, 30), "body"),
+	keel.Exact(keel.FlexMinMax(1, 10, 20), "nav"),
+	keel.Exact(keel.FlexMax(2, 30), "body"),
 )
 ```
 
@@ -108,7 +108,8 @@ allocations, frame renders, and render errors. Paths are slash-delimited slot
 indices rooted at `/` (e.g. `/0/1`).
 
 ```go
-logger := keel.NewFileLogger(os.Stdout)
+// import "github.com/trippwill/keel/logging"
+logger := logging.NewFileLogger(os.Stdout)
 renderer := keel.NewRenderer(layout, styleProvider, contentProvider)
 renderer.Config().SetLogger(logger.Log)
 size := keel.Size{Width: 80, Height: 24}
@@ -116,8 +117,8 @@ size := keel.Size{Width: 80, Height: 24}
 out, err := renderer.Render(size)
 ```
 
-The default message formats are available via `keel.LogEventFormats`, and you
-can supply any `LoggerFunc` to integrate with your own logging.
+The default message formats are available via `logging.LogEventFormats`, and you
+can supply any `logging.LoggerFunc` to integrate with your own logging.
 
 ## Limitations
 

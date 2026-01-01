@@ -1,4 +1,4 @@
-package engine
+package core
 
 // Spec is an element that participates in the layout hierarchy.
 // The extent returned is the total allocation along the stack axis,

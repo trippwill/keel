@@ -1,14 +1,13 @@
-package keel
+package core
 
 import (
 	"testing"
 
 	gloss "github.com/charmbracelet/lipgloss"
-	"github.com/trippwill/keel/engine"
 )
 
-func TestDefaultDebugProviderFitsContent(t *testing.T) {
-	provider := DefaultDebugProvider[string]
+func TestDebugProviderFitsContent(t *testing.T) {
+	provider := DebugContentProvider[string]
 	id := "a"
 	info := FrameInfo{
 		Width:         6,
@@ -17,7 +16,7 @@ func TestDefaultDebugProviderFitsContent(t *testing.T) {
 		ContentHeight: 2,
 		FrameWidth:    0,
 		FrameHeight:   0,
-		Fit:           engine.FitExact,
+		Fit:           FitExact,
 	}
 
 	got, err := provider(id, info)
@@ -30,8 +29,8 @@ func TestDefaultDebugProviderFitsContent(t *testing.T) {
 	}
 }
 
-func TestDefaultDebugProviderCompactSingleLine(t *testing.T) {
-	provider := DefaultDebugProvider[string]
+func TestDebugProviderCompactSingleLine(t *testing.T) {
+	provider := DebugContentProvider[string]
 	id := "header"
 	info := FrameInfo{
 		Width:         70,
@@ -52,8 +51,8 @@ func TestDefaultDebugProviderCompactSingleLine(t *testing.T) {
 	}
 }
 
-func TestDefaultDebugProviderCompactTwoLines(t *testing.T) {
-	provider := DefaultDebugProvider[string]
+func TestDebugProviderCompactTwoLines(t *testing.T) {
+	provider := DebugContentProvider[string]
 	id := "status"
 	info := FrameInfo{
 		Width:         30,
@@ -74,8 +73,8 @@ func TestDefaultDebugProviderCompactTwoLines(t *testing.T) {
 	}
 }
 
-func TestDefaultDebugProviderExpandedLines(t *testing.T) {
-	provider := DefaultDebugProvider[string]
+func TestDebugProviderExpandedLines(t *testing.T) {
+	provider := DebugContentProvider[string]
 	id := "nav"
 	info := FrameInfo{
 		Width:         15,
@@ -84,7 +83,7 @@ func TestDefaultDebugProviderExpandedLines(t *testing.T) {
 		ContentHeight: 5,
 		FrameWidth:    4,
 		FrameHeight:   2,
-		Fit:           engine.FitWrapClip,
+		Fit:           FitWrapClip,
 	}
 
 	got, err := provider(id, info)

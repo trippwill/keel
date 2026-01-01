@@ -1,10 +1,17 @@
 package keel
 
-import "github.com/trippwill/keel/engine"
+import "github.com/trippwill/keel/core"
+
+var (
+	ErrExtentTooSmall       = core.ErrExtentTooSmall
+	ErrConfigurationInvalid = core.ErrConfigurationInvalid
+)
 
 type (
-	KeelID    = engine.KeelID
-	Size      = engine.Size
-	Spec      = engine.Spec
-	FrameInfo = engine.FrameInfo
+	KeelID                = core.KeelID
+	Size                  = core.Size
+	Spec                  = core.Spec
+	FrameSpec[KID KeelID] = core.FrameSpec[KID]
+	StackSpec             = core.StackSpec
+	FrameInfo             = core.FrameInfo
 )

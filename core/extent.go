@@ -1,4 +1,5 @@
-package engine
+//go:generate stringer -type=ExtentKind -trimprefix=Extent
+package core
 
 // ExtentKind represents whether an [ExtentConstraint] is fixed or flexible.
 type ExtentKind uint8
