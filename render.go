@@ -20,7 +20,7 @@ func (r *Renderer[KID]) Render(size Size) (string, error) {
 	}
 	layout, err := r.ensureLayout(size)
 	if err != nil {
-		return "", err
+		return "", convertError(err)
 	}
 	return r.renderLayout(layout)
 }
@@ -45,7 +45,11 @@ func (r *Renderer[KID]) renderLayout(layout engine.Layout[KID]) (string, error) 
 	if logger != nil {
 		path = "/"
 	}
-	return renderLayoutWithPath(layout.Root, r, path)
+	out, err := renderLayoutWithPath(layout.Root, r, path)
+	if err != nil {
+		return "", convertError(err)
+	}
+	return out, nil
 }
 
 func renderLayoutWithPath[KID KeelID](node engine.LayoutNode[KID], r *Renderer[KID], path string) (string, error) {

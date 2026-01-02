@@ -74,8 +74,15 @@ func (s *countingStack) Slot(index int) (Spec, bool) {
 func TestRender_UnknownSpec(t *testing.T) {
 	renderer := NewRenderer[string](dummySpec{extent: FlexUnit()}, nil, nil)
 	_, err := renderer.Render(Size{Width: 1, Height: 1})
-	if !errors.Is(err, ErrUnknownSpec) {
-		t.Fatalf("expected ErrUnknownSpec, got %v", err)
+	var specErr *SpecError
+	if !errors.As(err, &specErr) {
+		t.Fatalf("expected SpecError, got %v", err)
+	}
+	if specErr.Kind != SpecKindSpec {
+		t.Fatalf("expected kind %q, got %q", SpecKindSpec, specErr.Kind)
+	}
+	if !errors.Is(err, ErrConfigurationInvalid) {
+		t.Fatalf("expected ErrConfigurationInvalid, got %v", err)
 	}
 }
 
@@ -143,7 +150,7 @@ func TestRenderStack_AllocTooSmallVertical(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisVertical {
+	if tooSmall.Axis != "Vertical" {
 		t.Fatalf("expected vertical axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Source != "vertical split" {
@@ -163,15 +170,18 @@ func TestRenderStack_UnstableSlot(t *testing.T) {
 
 	renderer := NewRenderer[string](stack, nil, nil)
 	_, err := renderer.Render(Size{Width: 1, Height: 1})
-	var slotErr *SlotError
-	if !errors.As(err, &slotErr) {
-		t.Fatalf("expected SlotError, got %v", err)
+	var specErr *SpecError
+	if !errors.As(err, &specErr) {
+		t.Fatalf("expected SpecError, got %v", err)
 	}
-	if slotErr.Index != 0 {
-		t.Fatalf("expected index 0, got %d", slotErr.Index)
+	if specErr.Kind != SpecKindSlot {
+		t.Fatalf("expected kind %q, got %q", SpecKindSlot, specErr.Kind)
 	}
-	if !errors.Is(err, ErrNilSlot) {
-		t.Fatalf("expected ErrNilSlot")
+	if specErr.Index != 0 {
+		t.Fatalf("expected index 0, got %d", specErr.Index)
+	}
+	if !errors.Is(err, ErrConfigurationInvalid) {
+		t.Fatalf("expected ErrConfigurationInvalid")
 	}
 }
 
@@ -184,8 +194,15 @@ func TestRenderStack_InvalidAxis(t *testing.T) {
 	renderer := NewRenderer[string](stack, nil, nil)
 	size := Size{Width: 1, Height: 1}
 	_, err := renderer.Render(size)
-	if !errors.Is(err, ErrInvalidAxis) {
-		t.Fatalf("expected ErrInvalidAxis, got %v", err)
+	var specErr *SpecError
+	if !errors.As(err, &specErr) {
+		t.Fatalf("expected SpecError, got %v", err)
+	}
+	if specErr.Kind != SpecKindAxis {
+		t.Fatalf("expected kind %q, got %q", SpecKindAxis, specErr.Kind)
+	}
+	if !errors.Is(err, ErrConfigurationInvalid) {
+		t.Fatalf("expected ErrConfigurationInvalid, got %v", err)
 	}
 }
 
@@ -195,15 +212,18 @@ func TestRenderStack_ArrangeSlotError(t *testing.T) {
 	renderer := NewRenderer[string](split, nil, nil)
 	size := Size{Width: 1, Height: 1}
 	_, err := renderer.Render(size)
-	var slotErr *SlotError
-	if !errors.As(err, &slotErr) {
-		t.Fatalf("expected SlotError, got %v", err)
+	var specErr *SpecError
+	if !errors.As(err, &specErr) {
+		t.Fatalf("expected SpecError, got %v", err)
 	}
-	if slotErr.Index != 0 {
-		t.Fatalf("expected index 0, got %d", slotErr.Index)
+	if specErr.Kind != SpecKindSlot {
+		t.Fatalf("expected kind %q, got %q", SpecKindSlot, specErr.Kind)
 	}
-	if !errors.Is(err, ErrNilSlot) {
-		t.Fatalf("expected ErrNilSlot")
+	if specErr.Index != 0 {
+		t.Fatalf("expected index 0, got %d", specErr.Index)
+	}
+	if !errors.Is(err, ErrConfigurationInvalid) {
+		t.Fatalf("expected ErrConfigurationInvalid")
 	}
 }
 
@@ -329,7 +349,7 @@ func TestRenderSplit_AllocTooSmall(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisHorizontal {
+	if tooSmall.Axis != "Horizontal" {
 		t.Fatalf("expected horizontal axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Source != "horizontal split" {
@@ -385,7 +405,7 @@ func TestRenderSplit_SlotChromeTooTall(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisVertical {
+	if tooSmall.Axis != "Vertical" {
 		t.Fatalf("expected vertical axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Reason != "frame" {
@@ -413,7 +433,7 @@ func TestRenderSplit_SlotChromeTooWide(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisHorizontal {
+	if tooSmall.Axis != "Horizontal" {
 		t.Fatalf("expected horizontal axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Reason != "frame" {
@@ -528,7 +548,7 @@ func TestRenderPanel_ContentTooWide(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisHorizontal {
+	if tooSmall.Axis != "Horizontal" {
 		t.Fatalf("expected horizontal axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Source != "frame a" {
@@ -612,7 +632,7 @@ func TestRenderPanel_TransformAffectsSize(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisHorizontal {
+	if tooSmall.Axis != "Horizontal" {
 		t.Fatalf("expected horizontal axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Reason != "content" {
@@ -635,7 +655,7 @@ func TestRenderPanel_TransformAffectsHeight(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisVertical {
+	if tooSmall.Axis != "Vertical" {
 		t.Fatalf("expected vertical axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Reason != "content" {
@@ -653,7 +673,7 @@ func TestRenderPanel_FitWrapStrictTooTall(t *testing.T) {
 	if !errors.As(err, &tooSmall) {
 		t.Fatalf("expected ExtentTooSmallError, got %v", err)
 	}
-	if tooSmall.Axis != core.AxisVertical {
+	if tooSmall.Axis != "Vertical" {
 		t.Fatalf("expected vertical axis, got %v", tooSmall.Axis)
 	}
 	if tooSmall.Reason != "content" {

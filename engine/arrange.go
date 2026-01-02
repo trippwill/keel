@@ -1,4 +1,3 @@
-//go:generate stringer -type=Axis -trimprefix=Axis
 package engine
 
 import "github.com/trippwill/keel/core"

@@ -63,14 +63,14 @@ func TestArrangeStackNilChild(t *testing.T) {
 	}
 
 	_, _, err := engine.ArrangeStack(10, stack)
-	var slotErr *SlotError
+	var slotErr *core.SlotError
 	if !errors.As(err, &slotErr) {
 		t.Fatalf("expected SlotError, got %v", err)
 	}
 	if slotErr.Index != 0 {
 		t.Fatalf("expected index 0, got %d", slotErr.Index)
 	}
-	if !errors.Is(err, ErrNilSlot) {
+	if !errors.Is(err, core.ErrNilSlot) {
 		t.Fatalf("expected ErrNilSlot")
 	}
 }
@@ -84,7 +84,14 @@ func TestRenderStackInvalidAxis(t *testing.T) {
 	renderer := NewRenderer[string](stack, nil, nil)
 	size := Size{Width: 10, Height: 1}
 	_, err := renderer.Render(size)
-	if !errors.Is(err, ErrInvalidAxis) {
-		t.Fatalf("expected ErrInvalidAxis, got %v", err)
+	var specErr *SpecError
+	if !errors.As(err, &specErr) {
+		t.Fatalf("expected SpecError, got %v", err)
+	}
+	if specErr.Kind != SpecKindAxis {
+		t.Fatalf("expected kind %q, got %q", SpecKindAxis, specErr.Kind)
+	}
+	if !errors.Is(err, ErrConfigurationInvalid) {
+		t.Fatalf("expected ErrConfigurationInvalid, got %v", err)
 	}
 }
