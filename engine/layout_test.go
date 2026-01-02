@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/trippwill/keel/core"
@@ -97,5 +98,61 @@ func TestArrangeBuildsRects(t *testing.T) {
 	}
 	if bottom.Rect.Y != 2 || bottom.Rect.Height != 3 {
 		t.Fatalf("unexpected bottom rect: %+v", bottom.Rect)
+	}
+}
+
+type unknownSpec struct {
+	core.ExtentConstraint
+}
+
+func TestArrangeUnknownSpec(t *testing.T) {
+	layout := unknownSpec{ExtentConstraint: flex(1)}
+	_, err := Arrange[string](layout, core.Size{Width: 1, Height: 1}, nil)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !errors.Is(err, core.ErrUnknownSpec) {
+		t.Fatalf("expected ErrUnknownSpec, got %v", err)
+	}
+}
+
+func TestArrangeInvalidAxis(t *testing.T) {
+	layout := testStack{ExtentConstraint: flex(1), axis: core.Axis(99), slots: []core.Spec{testFrame{ExtentConstraint: fixed(1), id: "a"}}}
+	_, err := Arrange[string](layout, core.Size{Width: 1, Height: 1}, nil)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !errors.Is(err, core.ErrInvalidAxis) {
+		t.Fatalf("expected ErrInvalidAxis, got %v", err)
+	}
+}
+
+func TestArrangeNilSlot(t *testing.T) {
+	layout := testStack{ExtentConstraint: flex(1), axis: core.AxisHorizontal, slots: []core.Spec{nil}}
+	_, err := Arrange[string](layout, core.Size{Width: 1, Height: 1}, nil)
+	var slotErr *core.SlotError
+	if !errors.As(err, &slotErr) {
+		t.Fatalf("expected SlotError, got %v", err)
+	}
+	if slotErr.Index != 0 {
+		t.Fatalf("expected index 0, got %d", slotErr.Index)
+	}
+}
+
+func TestArrangeTooSmallReturnsContext(t *testing.T) {
+	layout := testStack{ExtentConstraint: flex(1), axis: core.AxisHorizontal, slots: []core.Spec{testFrame{ExtentConstraint: fixed(5), id: "a"}}}
+	_, err := Arrange[string](layout, core.Size{Width: 3, Height: 1}, nil)
+	var tooSmall *core.ExtentTooSmallError
+	if !errors.As(err, &tooSmall) {
+		t.Fatalf("expected ExtentTooSmallError, got %v", err)
+	}
+	if tooSmall.Axis != core.AxisHorizontal {
+		t.Fatalf("expected horizontal axis, got %v", tooSmall.Axis)
+	}
+	if tooSmall.Source != "horizontal split" {
+		t.Fatalf("expected source %q, got %q", "horizontal split", tooSmall.Source)
+	}
+	if tooSmall.Reason != "allocation" {
+		t.Fatalf("expected reason %q, got %q", "allocation", tooSmall.Reason)
 	}
 }
