@@ -6,7 +6,7 @@ Keel is a deterministic layout engine for terminal applications. You describe a
 layout hierarchy, Keel deterministically allocates space along rows and
 columns, and frames render content and optional lipgloss styles. Rendering
 is strict by default: if frames or content don't fit the allocation, Keel
-returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
+returns an `ExtentTooSmallError` unless a fit mode permits fitting.
 
 ## Concepts
 
@@ -100,6 +100,17 @@ if err != nil {
 	panic(err)
 }
 ```
+
+## Errors
+
+Rendering errors fall into a small set of stable types:
+
+- `ExtentTooSmallError` reports when the terminal (or a frame/content allocation)
+  is too small. It includes the axis (`Horizontal`/`Vertical`), required size,
+  available size, and a short source/reason string for diagnostics.
+- `SpecError` reports configuration issues in the spec tree. It wraps
+  `ErrConfigurationInvalid`, and includes a kind (`spec`, `axis`, `slot`, `extent`)
+  plus an optional index and reason string.
 
 ## Logging
 

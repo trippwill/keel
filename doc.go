@@ -8,6 +8,9 @@
 // intrinsic measurement,
 // constraint solving, or stateful rendering.
 //
+// Error surfaces are small and stable: size issues return [ExtentTooSmallError],
+// while configuration issues return [SpecError] wrapping [ErrConfigurationInvalid].
+//
 // For repeated renders, store a spec on a [Renderer] and call [Renderer.Render].
 // The renderer caches the arranged layout for the last size; call [Renderer.Invalidate]
 // after mutating a spec.
