@@ -2,6 +2,11 @@ package keel
 
 import "github.com/trippwill/keel/core"
 
+var (
+	ErrExtentTooSmall       = core.ErrExtentTooSmall
+	ErrConfigurationInvalid = core.ErrConfigurationInvalid
+)
+
 type (
 	KeelID                = core.KeelID
 	Size                  = core.Size
