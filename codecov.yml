@@ -1,3 +1,4 @@
 ignore:
   - "examples"
   - "**/*_string.go"
+  - "*_string.go"

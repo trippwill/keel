@@ -1,10 +1,7 @@
-package keel
+package logging
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"sync"
 )
 
 // LogEvent identifies the source of a render log message.
@@ -40,34 +37,15 @@ func (e LogEvent) String() string {
 // LoggerFunc receives a render event, a slash-delimited slot path, and a formatted message.
 type LoggerFunc func(event LogEvent, path, msg string)
 
-// FileLogger writes render log events to the provided writer.
-// It is safe for concurrent use.
-type FileLogger struct {
-	mu sync.Mutex
-	w  io.Writer
-}
-
-// NewFileLogger returns a FileLogger that writes to the given writer.
-func NewFileLogger(w io.Writer) *FileLogger {
-	return &FileLogger{w: w}
-}
-
-// NewFileLoggerPath returns a FileLogger writing to the given path and the
-// opened file. Call Close on the file when done.
-func NewFileLoggerPath(path string) (*FileLogger, *os.File, error) {
-	file, err := os.Create(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	return NewFileLogger(file), file, nil
-}
-
-// Log writes a single log entry.
-func (l *FileLogger) Log(event LogEvent, path, msg string) {
-	if l == nil || l.w == nil {
+// LogEvent formats a log entry for the event and invokes the logger.
+func (f LoggerFunc) LogEvent(path string, event LogEvent, args ...any) {
+	if f == nil {
 		return
 	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	_, _ = fmt.Fprintf(l.w, "%s\t%s\t%s\n", event.String(), path, msg)
+	msgFormat, ok := LogEventFormats[event]
+	if !ok {
+		msgFormat = "event=%v"
+		args = []any{event}
+	}
+	f(event, path, fmt.Sprintf(msgFormat, args...))
 }

@@ -1,65 +1,67 @@
-package keel
+package engine
 
 import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/trippwill/keel/core"
 )
 
 func TestAllocateValidation(t *testing.T) {
 	cases := []struct {
 		name  string
 		total int
-		specs []ExtentConstraint
+		specs []core.ExtentConstraint
 		err   error
 	}{
 		{
 			name:  "negative total",
 			total: -1,
-			specs: []ExtentConstraint{Flex(1)},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFixed, Units: 1}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "units must be positive",
 			total: 1,
-			specs: []ExtentConstraint{{Kind: ExtentFixed, Units: 0}},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFixed, Units: 0}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "content min non-negative",
 			total: 1,
-			specs: []ExtentConstraint{{Kind: ExtentFlex, Units: 1, MinCells: -1}},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFlex, Units: 1, MinCells: -1}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "content max non-negative",
 			total: 1,
-			specs: []ExtentConstraint{{Kind: ExtentFlex, Units: 1, MaxCells: -1}},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFlex, Units: 1, MaxCells: -1}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "fixed must cover content min",
 			total: 10,
-			specs: []ExtentConstraint{{Kind: ExtentFixed, Units: 1, MinCells: 2}},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFixed, Units: 1, MinCells: 2}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "max must cover min",
 			total: 10,
-			specs: []ExtentConstraint{{Kind: ExtentFlex, Units: 1, MinCells: 3, MaxCells: 2}},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFlex, Units: 1, MinCells: 3, MaxCells: 2}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "invalid size kind",
 			total: 10,
-			specs: []ExtentConstraint{{Kind: ExtentKind(99), Units: 1}},
-			err:   ErrConfigurationInvalid,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentKind(99), Units: 1}},
+			err:   core.ErrConfigurationInvalid,
 		},
 		{
 			name:  "required exceeds total",
 			total: 2,
-			specs: []ExtentConstraint{{Kind: ExtentFlex, Units: 1, MinCells: 3}},
-			err:   ErrExtentTooSmall,
+			specs: []core.ExtentConstraint{{Kind: core.ExtentFlex, Units: 1, MinCells: 3}},
+			err:   core.ErrExtentTooSmall,
 		},
 	}
 
@@ -102,61 +104,61 @@ func TestAllocateDistribution(t *testing.T) {
 	cases := []struct {
 		name  string
 		total int
-		specs []ExtentConstraint
+		specs []core.ExtentConstraint
 		want  []int
 	}{
 		{
 			name:  "flex distribution with remainder",
 			total: 10,
-			specs: []ExtentConstraint{
-				{Kind: ExtentFlex, Units: 1, MinCells: 0},
-				{Kind: ExtentFlex, Units: 3, MinCells: 0},
+			specs: []core.ExtentConstraint{
+				{Kind: core.ExtentFlex, Units: 1, MinCells: 0},
+				{Kind: core.ExtentFlex, Units: 3, MinCells: 0},
 			},
 			want: []int{3, 7},
 		},
 		{
 			name:  "leftover goes to last when no flex",
 			total: 5,
-			specs: []ExtentConstraint{
-				{Kind: ExtentFixed, Units: 2, MinCells: 0},
-				{Kind: ExtentFixed, Units: 1, MinCells: 0},
+			specs: []core.ExtentConstraint{
+				{Kind: core.ExtentFixed, Units: 2, MinCells: 0},
+				{Kind: core.ExtentFixed, Units: 1, MinCells: 0},
 			},
 			want: []int{2, 3},
 		},
 		{
 			name:  "mix of fixed and flex with content min",
 			total: 10,
-			specs: []ExtentConstraint{
-				{Kind: ExtentFixed, Units: 2, MinCells: 1},
-				{Kind: ExtentFlex, Units: 2, MinCells: 3},
-				{Kind: ExtentFlex, Units: 1, MinCells: 1},
+			specs: []core.ExtentConstraint{
+				{Kind: core.ExtentFixed, Units: 2, MinCells: 1},
+				{Kind: core.ExtentFlex, Units: 2, MinCells: 3},
+				{Kind: core.ExtentFlex, Units: 1, MinCells: 1},
 			},
 			want: []int{2, 6, 2},
 		},
 		{
 			name:  "max caps flex distribution",
 			total: 10,
-			specs: []ExtentConstraint{
-				{Kind: ExtentFlex, Units: 1, MaxCells: 3},
-				{Kind: ExtentFlex, Units: 1},
+			specs: []core.ExtentConstraint{
+				{Kind: core.ExtentFlex, Units: 1, MaxCells: 3},
+				{Kind: core.ExtentFlex, Units: 1},
 			},
 			want: []int{3, 7},
 		},
 		{
 			name:  "soft max releases when needed",
 			total: 10,
-			specs: []ExtentConstraint{
-				{Kind: ExtentFlex, Units: 1, MaxCells: 3},
-				{Kind: ExtentFlex, Units: 1, MaxCells: 3},
+			specs: []core.ExtentConstraint{
+				{Kind: core.ExtentFlex, Units: 1, MaxCells: 3},
+				{Kind: core.ExtentFlex, Units: 1, MaxCells: 3},
 			},
 			want: []int{5, 5},
 		},
 		{
 			name:  "fixed ignores max",
 			total: 5,
-			specs: []ExtentConstraint{
-				{Kind: ExtentFixed, Units: 2, MaxCells: 1},
-				{Kind: ExtentFlex, Units: 1},
+			specs: []core.ExtentConstraint{
+				{Kind: core.ExtentFixed, Units: 2, MaxCells: 1},
+				{Kind: core.ExtentFlex, Units: 1},
 			},
 			want: []int{2, 3},
 		},
@@ -176,11 +178,11 @@ func TestAllocateDistribution(t *testing.T) {
 }
 
 func TestArrangeInvariants(t *testing.T) {
-	specs := []ExtentConstraint{
-		{Kind: ExtentFixed, Units: 2, MinCells: 2},
-		{Kind: ExtentFlex, Units: 1, MinCells: 1},
-		{Kind: ExtentFixed, Units: 3, MinCells: 3},
-		{Kind: ExtentFlex, Units: 2, MinCells: 0},
+	specs := []core.ExtentConstraint{
+		{Kind: core.ExtentFixed, Units: 2, MinCells: 2},
+		{Kind: core.ExtentFlex, Units: 1, MinCells: 1},
+		{Kind: core.ExtentFixed, Units: 3, MinCells: 3},
+		{Kind: core.ExtentFlex, Units: 2, MinCells: 0},
 	}
 	total := 12
 
@@ -195,7 +197,7 @@ func TestArrangeInvariants(t *testing.T) {
 		if size < specs[i].MinCells {
 			t.Fatalf("slot %d expected >= %d, got %d", i, specs[i].MinCells, size)
 		}
-		if specs[i].Kind == ExtentFixed && size != specs[i].Units {
+		if specs[i].Kind == core.ExtentFixed && size != specs[i].Units {
 			t.Fatalf("slot %d expected fixed %d, got %d", i, specs[i].Units, size)
 		}
 	}
@@ -205,9 +207,9 @@ func TestArrangeInvariants(t *testing.T) {
 }
 
 func TestArrangeSoftMaxExceedsWhenNeeded(t *testing.T) {
-	specs := []ExtentConstraint{
-		{Kind: ExtentFlex, Units: 1, MaxCells: 2},
-		{Kind: ExtentFlex, Units: 1, MaxCells: 2},
+	specs := []core.ExtentConstraint{
+		{Kind: core.ExtentFlex, Units: 1, MaxCells: 2},
+		{Kind: core.ExtentFlex, Units: 1, MaxCells: 2},
 	}
 
 	sizes, _, err := ArrangeExtents(7, specs)
@@ -223,9 +225,9 @@ func TestArrangeSoftMaxExceedsWhenNeeded(t *testing.T) {
 }
 
 func TestArrangeMaxDistributesRemainder(t *testing.T) {
-	specs := []ExtentConstraint{
-		{Kind: ExtentFlex, Units: 1, MaxCells: 4},
-		{Kind: ExtentFlex, Units: 1, MaxCells: 4},
+	specs := []core.ExtentConstraint{
+		{Kind: core.ExtentFlex, Units: 1, MaxCells: 4},
+		{Kind: core.ExtentFlex, Units: 1, MaxCells: 4},
 	}
 
 	sizes, _, err := ArrangeExtents(5, specs)
@@ -239,9 +241,9 @@ func TestArrangeMaxDistributesRemainder(t *testing.T) {
 }
 
 func TestArrangeFlexMinMaxHonorsBounds(t *testing.T) {
-	specs := []ExtentConstraint{
-		FlexMinMax(1, 2, 4),
-		FlexUnit(),
+	specs := []core.ExtentConstraint{
+		{Kind: core.ExtentFlex, Units: 1, MinCells: 2, MaxCells: 4},
+		{Kind: core.ExtentFlex, Units: 1},
 	}
 
 	sizes, _, err := ArrangeExtents(6, specs)

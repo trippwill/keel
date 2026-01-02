@@ -6,17 +6,17 @@ Keel is a deterministic layout engine for terminal applications. You describe a
 layout hierarchy, Keel deterministically allocates space along rows and
 columns, and frames render content and optional lipgloss styles. Rendering
 is strict by default: if frames or content don't fit the allocation, Keel
-returns an `ExtentTooSmallError` unless a `FitMode` permits fitting.
+returns an `ExtentTooSmallError` unless a fit mode permits fitting.
 
 ## Concepts
 
 - `Row` / `Col` define stacks that split space along an axis.
-- `Panel` is a frame identified by a `KeelID`.
+- Frame constructors (`Exact`, `Clip`, `Wrap`, `WrapStrict`, `Overflow`) identify frames by `KeelID`.
 - `ExtentConstraint` (`Fixed`, `Flex`, `FlexMin`, `FlexMax`, `FlexMinMax`) controls how space is
   allocated along the stack axis.
 - `Size` describes the available width/height for arrange/render.
-- `FitMode` controls how content fits inside a frame.
-- `Context` provides `ContentProvider`, `StyleProvider`, and logging.
+- Fit modes (`Exact`, `Clip`, `Wrap`, `WrapStrict`, `Overflow`) control how content fits inside a frame.
+- `Renderer` provides `ContentProvider`, `StyleProvider`, and render configuration.
 - Flex max caps are soft: if all flex slots hit their max and space remains,
   the remainder is distributed ignoring max caps.
 
@@ -34,15 +34,23 @@ import (
 
 func main() {
 	layout := keel.Col(keel.FlexUnit(),
-		keel.Panel(keel.Fixed(3), "header"),
+		keel.Exact(keel.Fixed(3), "header"),
 		keel.Row(keel.FlexUnit(),
-			keel.Panel(keel.FlexMin(1, 10), "nav"),
-			keel.Panel(keel.FlexMin(2, 20), "body"),
+			keel.Exact(keel.FlexMin(1, 10), "nav"),
+			keel.Exact(keel.FlexMin(2, 20), "body"),
 		),
 	)
 
-	ctx := keel.Context[string]{
-		ContentProvider: func(id string, _ keel.RenderInfo) (string, error) {
+	renderer := keel.NewRenderer(
+		layout,
+		func(id string) *gloss.Style {
+			if id == "header" {
+				style := gloss.NewStyle().Bold(true).Padding(0, 1)
+				return &style
+			}
+			return nil
+		},
+		func(id string, _ keel.FrameInfo) (string, error) {
 			switch id {
 			case "header":
 				return "Dashboard", nil
@@ -54,17 +62,10 @@ func main() {
 				return "", &keel.UnknownFrameIDError{ID: id}
 			}
 		},
-		StyleProvider: func(id string) *gloss.Style {
-			if id == "header" {
-				style := gloss.NewStyle().Bold(true).Padding(0, 1)
-				return &style
-			}
-			return nil
-		},
-	}
+	)
 	size := keel.Size{Width: 80, Height: 24}
 
-	out, err := keel.RenderSpec(ctx, layout, size)
+	out, err := renderer.Render(size)
 	if err != nil {
 		panic(err)
 	}
@@ -80,48 +81,55 @@ Here's a small example using soft max caps:
 
 ```go
 layout := keel.Row(keel.FlexUnit(),
-	keel.Panel(keel.FlexMinMax(1, 10, 20), "nav"),
-	keel.Panel(keel.FlexMax(2, 30), "body"),
+	keel.Exact(keel.FlexMinMax(1, 10, 20), "nav"),
+	keel.Exact(keel.FlexMax(2, 30), "body"),
 )
 ```
 
 ## Arranged layouts
 
-If you render repeatedly at the same size, arrange once and re-use the arranged
-tree until the width/height or layout changes.
+Renderers cache the arranged layout for the last size. Call `Render` with the
+current size; it will re-arrange only when the size changes. If you mutate a
+spec in place, call `renderer.Invalidate()` to force a re-arrange. For a new
+spec, construct a new renderer.
 
 ```go
 size := keel.Size{Width: 80, Height: 24}
-layout, err := keel.Arrange(ctx, layout, size)
-if err != nil {
-	panic(err)
-}
-
-out, err := keel.Render(ctx, layout)
+out, err := renderer.Render(size)
 if err != nil {
 	panic(err)
 }
 ```
 
+## Errors
+
+Rendering errors fall into a small set of stable types:
+
+- `ExtentTooSmallError` reports when the terminal (or a frame/content allocation)
+  is too small. It includes the axis (`Horizontal`/`Vertical`), required size,
+  available size, and a short source/reason string for diagnostics.
+- `SpecError` reports configuration issues in the spec tree. It wraps
+  `ErrConfigurationInvalid`, and includes a kind (`spec`, `axis`, `slot`, `extent`)
+  plus an optional index and reason string.
+
 ## Logging
 
-Keel can emit render logs through a context logger. Log events include stack
+Keel can emit render logs through the renderer config logger. Log events include stack
 allocations, frame renders, and render errors. Paths are slash-delimited slot
 indices rooted at `/` (e.g. `/0/1`).
 
 ```go
-logger := keel.NewFileLogger(os.Stdout)
-ctx := keel.Context[string]{}.
-	WithContentProvider(contentProvider).
-	WithStyleProvider(styleProvider).
-	WithLogger(logger.Log)
+// import "github.com/trippwill/keel/logging"
+logger := logging.NewFileLogger(os.Stdout)
+renderer := keel.NewRenderer(layout, styleProvider, contentProvider)
+renderer.Config().SetLogger(logger.Log)
 size := keel.Size{Width: 80, Height: 24}
 
-out, err := keel.RenderSpec(ctx, layout, size)
+out, err := renderer.Render(size)
 ```
 
-The default message formats are available via `keel.LogEventFormats`, and you
-can supply any `LoggerFunc` to integrate with your own logging.
+The default message formats are available via `logging.LogEventFormats`, and you
+can supply any `logging.LoggerFunc` to integrate with your own logging.
 
 ## Limitations
 

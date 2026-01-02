@@ -9,15 +9,16 @@ import (
 
 func BenchmarkRenderExampleSplit(b *testing.B) {
 	layout := examples.ExampleSplit()
-	ctx := keel.Context[string]{
-		StyleProvider:   examples.ExampleSplitStyleProvider,
-		ContentProvider: examples.ExampleSplitContentProvider,
-	}
+	renderer := keel.NewRenderer(
+		layout,
+		examples.ExampleSplitStyleProvider,
+		examples.ExampleSplitContentProvider,
+	)
 	size := keel.Size{Width: 70, Height: 13}
 
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := keel.RenderSpec(ctx, layout, size); err != nil {
+		if _, err := renderer.Render(size); err != nil {
 			b.Fatal(err)
 		}
 	}

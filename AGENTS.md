@@ -2,7 +2,7 @@
 
 ## Scope & Structure
 - This repo is a standalone Go module for the layout/render engine `keel` (`go.mod`).
-- Core APIs live in `spec.go`, `panel.go`, `split.go`, `geom.go`, `arrange.go`, `render.go`, `debug.go`, and `err.go`.
+- Core shared types and errors (including debug providers) live in `core/`. Advanced layout primitives and allocation live in `engine/`. Renderer and helpers live in `render.go`, `renderer.go`, `frame.go`, `stack.go`, `extent.go`, and `logging/`.
 - Examples and shared fixtures live in the `examples` subpackage; a runnable demo is in `examples/dashboard`.
 
 ## Build, Test, and Development Commands
@@ -13,14 +13,14 @@
 - `mise run test` runs tests with cache disabled.
 - `mise run bench` runs the benchmark task.
 - `mise run bench-report` updates `current_bench_result.txt` and `BENCHMARKS.md`.
-- `mise run precommit` runs fmt, vet, build, and tests.
+- `mise run precommit` runs fmt, vet, build, and tests. If it hangs, rerun with elevated permissions.
 - prefer using `mise` for consistent environment setup.
 
 ## Coding Style & Naming Conventions
 - Follow `gofmt` output and standard Go conventions; exported symbols must have doc comments.
-- Keep error strings lowercase and concise; wrap with typed errors from `keel/err.go`.
+- Keep error strings lowercase and concise; use `SpecError` for configuration issues and `ExtentTooSmallError` for sizing failures (both in `keel/err.go`).
 - Treat styles from `StyleProvider` as immutable; cached styles are expected.
-- `ContentProvider` receives the frame ID plus `RenderInfo`; ensure content respects the content box and the frame's `FitMode`.
+- `ContentProvider` receives the frame ID plus `FrameInfo`; ensure content respects the content box and the frame's fit mode.
 - Prefer small, composable helpers for allocation and rendering steps.
 
 ## Testing Guidelines

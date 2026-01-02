@@ -1,40 +1,40 @@
-package keel_test
+package engine
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/trippwill/keel"
+	"github.com/trippwill/keel/core"
 )
 
 type benchStack struct {
-	slots []keel.Spec
+	slots []core.Spec
 }
 
 func (s *benchStack) Len() int {
 	return len(s.slots)
 }
 
-func (s *benchStack) Slot(i int) (keel.Spec, bool) {
+func (s *benchStack) Slot(i int) (core.Spec, bool) {
 	if i < 0 || i >= len(s.slots) {
 		return nil, false
 	}
 	return s.slots[i], true
 }
 
-func (s *benchStack) Axis() keel.Axis {
-	return keel.AxisHorizontal
+func (s *benchStack) Axis() core.Axis {
+	return core.AxisHorizontal
 }
 
-func (s *benchStack) Extent() keel.ExtentConstraint {
-	return keel.FlexMin(1, 1)
+func (s *benchStack) Extent() core.ExtentConstraint {
+	return core.ExtentConstraint{Kind: core.ExtentFlex, MinCells: 1, MaxCells: 1}
 }
 
 type benchSpec struct {
-	extent keel.ExtentConstraint
+	extent core.ExtentConstraint
 }
 
-func (b benchSpec) Extent() keel.ExtentConstraint {
+func (b benchSpec) Extent() core.ExtentConstraint {
 	return b.extent
 }
 
@@ -49,7 +49,7 @@ func BenchmarkArrangeStack(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {
-				if _, _, err := keel.ArrangeStack(total, stack); err != nil {
+				if _, _, err := ArrangeStack(total, stack); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -57,21 +57,21 @@ func BenchmarkArrangeStack(b *testing.B) {
 	}
 }
 
-func benchSlots(count int) ([]keel.Spec, int) {
-	slots := make([]keel.Spec, count)
+func benchSlots(count int) ([]core.Spec, int) {
+	slots := make([]core.Spec, count)
 	required := 0
 	for i := range count {
-		var extent keel.ExtentConstraint
+		var extent core.ExtentConstraint
 		if i%3 == 0 {
-			extent = keel.Fixed(3)
+			extent = core.ExtentConstraint{Kind: core.ExtentFixed, Units: 3}
 		} else {
-			extent = keel.FlexMin(1, 1)
+			extent = core.ExtentConstraint{Kind: core.ExtentFlex, Units: 1, MinCells: 1}
 		}
 		slots[i] = benchSpec{extent: extent}
 		switch extent.Kind {
-		case keel.ExtentFixed:
+		case core.ExtentFixed:
 			required += extent.Units
-		case keel.ExtentFlex:
+		case core.ExtentFlex:
 			required += extent.MinCells
 		}
 	}
