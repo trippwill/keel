@@ -1,9 +1,9 @@
 package keel
 
 import (
+	"io"
+	"log/slog"
 	"testing"
-
-	"github.com/trippwill/keel/logging"
 )
 
 func TestConfigNilReceiver(t *testing.T) {
@@ -14,24 +14,20 @@ func TestConfigNilReceiver(t *testing.T) {
 	if config.Debug() {
 		t.Fatalf("expected debug false")
 	}
-	config.SetLogger(logging.LoggerFunc(func(logging.LogEvent, string, string) {}))
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	config.SetLogger(logger)
 	config.SetDebug(true)
 }
 
 func TestConfigSetters(t *testing.T) {
 	config := NewConfig()
-	called := false
-	logger := logging.LoggerFunc(func(logging.LogEvent, string, string) { called = true })
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	config.SetLogger(logger)
 	config.SetDebug(true)
-	if config.Logger() == nil {
+	if config.Logger() != logger {
 		t.Fatalf("expected logger")
 	}
 	if !config.Debug() {
 		t.Fatalf("expected debug true")
-	}
-	config.Logger().LogEvent("/", logging.LogEventRenderError, "x")
-	if !called {
-		t.Fatalf("expected logger called")
 	}
 }

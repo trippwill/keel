@@ -1,7 +1,10 @@
 package keel
 
 import (
+	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 
 	gloss "github.com/charmbracelet/lipgloss"
@@ -23,9 +26,9 @@ type dummySpec struct {
 func (d dummySpec) Extent() ExtentConstraint { return d.extent }
 
 type logEntry struct {
-	event logging.LogEvent
-	path  string
+	level slog.Level
 	msg   string
+	attrs map[string]any
 }
 
 type flakyStack struct {
@@ -55,6 +58,68 @@ type countingStack struct {
 	axis  core.Axis
 	slots []Spec
 	calls int
+}
+
+type captureHandler struct {
+	entries *[]logEntry
+	attrs   []slog.Attr
+	groups  []string
+}
+
+func newCaptureHandler() (*captureHandler, *[]logEntry) {
+	entries := []logEntry{}
+	return &captureHandler{entries: &entries}, &entries
+}
+
+func (h *captureHandler) Enabled(context.Context, slog.Level) bool {
+	return true
+}
+
+func (h *captureHandler) Handle(_ context.Context, record slog.Record) error {
+	attrs := map[string]any{}
+	groupPrefix := strings.Join(h.groups, ".")
+	addAttr := func(attr slog.Attr) {
+		key := attr.Key
+		if groupPrefix != "" {
+			key = groupPrefix + "." + key
+		}
+		attrs[key] = attr.Value.Any()
+	}
+
+	for _, attr := range h.attrs {
+		addAttr(attr)
+	}
+	record.Attrs(func(attr slog.Attr) bool {
+		addAttr(attr)
+		return true
+	})
+
+	*h.entries = append(*h.entries, logEntry{
+		level: record.Level,
+		msg:   record.Message,
+		attrs: attrs,
+	})
+	return nil
+}
+
+func (h *captureHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	nextAttrs := append([]slog.Attr{}, h.attrs...)
+	nextAttrs = append(nextAttrs, attrs...)
+	return &captureHandler{
+		entries: h.entries,
+		attrs:   nextAttrs,
+		groups:  append([]string{}, h.groups...),
+	}
+}
+
+func (h *captureHandler) WithGroup(name string) slog.Handler {
+	nextGroups := append([]string{}, h.groups...)
+	nextGroups = append(nextGroups, name)
+	return &captureHandler{
+		entries: h.entries,
+		attrs:   append([]slog.Attr{}, h.attrs...),
+		groups:  nextGroups,
+	}
 }
 
 func (s countingStack) Extent() ExtentConstraint { return FlexUnit() }
@@ -260,14 +325,8 @@ func TestRenderInvalidateClearsCachedLayout(t *testing.T) {
 }
 
 func TestRender_LoggerEvents(t *testing.T) {
-	var entries []logEntry
-	logger := func(event logging.LogEvent, path, msg string) {
-		entries = append(entries, logEntry{
-			event: event,
-			path:  path,
-			msg:   msg,
-		})
-	}
+	handler, entries := newCaptureHandler()
+	logger := slog.New(handler)
 
 	layout := Row(FlexUnit(),
 		Exact(FlexUnit(), "a"),
@@ -281,20 +340,21 @@ func TestRender_LoggerEvents(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(entries) < 2 {
-		t.Fatalf("expected at least 2 log entries, got %d", len(entries))
+	if len(*entries) < 2 {
+		t.Fatalf("expected at least 2 log entries, got %d", len(*entries))
 	}
 
-	if entries[0].event != logging.LogEventStackAlloc {
-		t.Fatalf("expected stack.alloc first, got %q", entries[0].event)
+	first := (*entries)[0]
+	if first.attrs["event"] != string(logging.EventStackAlloc) {
+		t.Fatalf("expected stack.alloc first, got %q", first.attrs["event"])
 	}
-	if entries[0].path != "/" {
-		t.Fatalf("expected root path, got %q", entries[0].path)
+	if first.attrs["path"] != "/" {
+		t.Fatalf("expected root path, got %q", first.attrs["path"])
 	}
 
 	found := false
-	for _, entry := range entries {
-		if entry.event == logging.LogEventFrameRender && entry.path == "/0" {
+	for _, entry := range *entries {
+		if entry.attrs["event"] == string(logging.EventFrameRender) && entry.attrs["path"] == "/0" {
 			found = true
 			break
 		}
@@ -305,14 +365,8 @@ func TestRender_LoggerEvents(t *testing.T) {
 }
 
 func TestRender_LoggerError(t *testing.T) {
-	var entries []logEntry
-	logger := func(event logging.LogEvent, path, msg string) {
-		entries = append(entries, logEntry{
-			event: event,
-			path:  path,
-			msg:   msg,
-		})
-	}
+	handler, entries := newCaptureHandler()
+	logger := slog.New(handler)
 
 	renderer := NewRenderer[string](Exact(FlexUnit(), "a"), nil, nil)
 	renderer.Config().SetLogger(logger)
@@ -323,8 +377,8 @@ func TestRender_LoggerError(t *testing.T) {
 	}
 
 	found := false
-	for _, entry := range entries {
-		if entry.event == logging.LogEventRenderError {
+	for _, entry := range *entries {
+		if entry.attrs["event"] == string(logging.EventRenderError) {
 			found = true
 			break
 		}

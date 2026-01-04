@@ -2,6 +2,7 @@ package keel
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	gloss "github.com/charmbracelet/lipgloss"
@@ -162,18 +163,18 @@ func renderFrameWithPath[KID KeelID](frame core.FrameSpec[KID], r *Renderer[KID]
 		Fit:           frame.Fit(),
 	}
 
-	logf(
+	logEvent(
 		logger,
 		path,
-		logging.LogEventFrameRender,
-		frame.ID(),
-		info.Width,
-		info.Height,
-		info.FrameWidth,
-		info.FrameHeight,
-		info.ContentWidth,
-		info.ContentHeight,
-		info.Fit,
+		logging.EventFrameRender,
+		slog.Any("id", frame.ID()),
+		slog.Int("alloc_width", info.Width),
+		slog.Int("alloc_height", info.Height),
+		slog.Int("frame_width", info.FrameWidth),
+		slog.Int("frame_height", info.FrameHeight),
+		slog.Int("content_width", info.ContentWidth),
+		slog.Int("content_height", info.ContentHeight),
+		slog.String("fit", info.Fit.String()),
 	)
 
 	content, err := contentFor(r, frame.ID(), info)
@@ -305,7 +306,7 @@ func effectiveContentProvider[KID KeelID](r *Renderer[KID]) ContentProvider[KID]
 	return r.content
 }
 
-func rendererLogger[KID KeelID](r *Renderer[KID]) logging.LoggerFunc {
+func rendererLogger[KID KeelID](r *Renderer[KID]) *slog.Logger {
 	if r == nil || r.config == nil {
 		return nil
 	}
@@ -316,15 +317,12 @@ func sourceFor[KID KeelID](frame core.FrameSpec[KID]) string {
 	return fmt.Sprintf("frame %v", frame.ID())
 }
 
-func logf(logger logging.LoggerFunc, path string, event logging.LogEvent, args ...any) {
-	logger.LogEvent(path, event, args...)
+func logEvent(logger *slog.Logger, path string, event logging.Event, attrs ...slog.Attr) {
+	logging.LogEvent(logger, slog.LevelDebug, event, path, attrs...)
 }
 
-func logError(logger logging.LoggerFunc, path string, stage string, err error) {
-	if logger == nil || err == nil {
-		return
-	}
-	logf(logger, path, logging.LogEventRenderError, stage, err)
+func logError(logger *slog.Logger, path string, stage string, err error) {
+	logging.LogError(logger, path, stage, err)
 }
 
 func appendPath(path string, index int) string {

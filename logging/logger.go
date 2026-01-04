@@ -1,51 +1,45 @@
 package logging
 
 import (
-	"fmt"
+	"context"
+	"log/slog"
 )
 
-// LogEvent identifies the source of a render log message.
-type LogEvent uint8
+// Event identifies the source of a render log entry.
+type Event string
 
 const (
-	LogEventStackAlloc LogEvent = iota
-	LogEventFrameRender
-	LogEventRenderError
+	EventStackAlloc  Event = "stack.alloc"
+	EventFrameRender Event = "frame.render"
+	EventRenderError Event = "render.error"
 )
 
-// LogEventFormats provides default formats for log messages.
-// The map entries should be treated as read-only.
-var LogEventFormats = map[LogEvent]string{
-	LogEventStackAlloc:  "axis=%s total=%d slots=%d sizes=%v required=%d",
-	LogEventFrameRender: "id=%v alloc=%dx%d frame=%dx%d content=%dx%d fit=%v",
-	LogEventRenderError: "stage=%s err=%v",
-}
-
-func (e LogEvent) String() string {
-	switch e {
-	case LogEventStackAlloc:
-		return "stack.alloc"
-	case LogEventFrameRender:
-		return "frame.render"
-	case LogEventRenderError:
-		return "render.error"
-	default:
-		return fmt.Sprintf("LogEvent(%d)", e)
-	}
-}
-
-// LoggerFunc receives a render event, a slash-delimited slot path, and a formatted message.
-type LoggerFunc func(event LogEvent, path, msg string)
-
-// LogEvent formats a log entry for the event and invokes the logger.
-func (f LoggerFunc) LogEvent(path string, event LogEvent, args ...any) {
-	if f == nil {
+// LogEvent logs a structured render event to the provided logger.
+func LogEvent(logger *slog.Logger, level slog.Level, event Event, path string, attrs ...slog.Attr) {
+	if logger == nil {
 		return
 	}
-	msgFormat, ok := LogEventFormats[event]
-	if !ok {
-		msgFormat = "event=%v"
-		args = []any{event}
+	if !logger.Enabled(context.Background(), level) {
+		return
 	}
-	f(event, path, fmt.Sprintf(msgFormat, args...))
+	if path != "" {
+		attrs = append(attrs, slog.String("path", path))
+	}
+	attrs = append(attrs, slog.String("event", string(event)))
+	logger.LogAttrs(context.Background(), level, "keel.render", attrs...)
+}
+
+// LogError logs a render error event at error level.
+func LogError(logger *slog.Logger, path string, stage string, err error) {
+	if err == nil {
+		return
+	}
+	LogEvent(
+		logger,
+		slog.LevelError,
+		EventRenderError,
+		path,
+		slog.String("stage", stage),
+		slog.Any("err", err),
+	)
 }
