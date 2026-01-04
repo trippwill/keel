@@ -2,46 +2,46 @@ goos: linux
 goarch: amd64
 pkg: github.com/trippwill/keel
 cpu: Intel(R) Core(TM) Ultra 5 228V
-BenchmarkRenderExampleSplit-8   	    8194	    149404 ns/op	   38318 B/op	     734 allocs/op
-BenchmarkRenderExampleSplit-8   	    9325	    138197 ns/op	   37577 B/op	     734 allocs/op
-BenchmarkRenderExampleSplit-8   	    9252	    153138 ns/op	   38570 B/op	     734 allocs/op
-BenchmarkRenderExampleSplit-8   	    8703	    147291 ns/op	   37251 B/op	     734 allocs/op
-BenchmarkRenderExampleSplit-8   	    8436	    150683 ns/op	   39045 B/op	     734 allocs/op
-BenchmarkRenderExampleSplit-8   	    9342	    141381 ns/op	   35735 B/op	     734 allocs/op
+BenchmarkRenderExampleSplit-8   	    7300	    161752 ns/op	   42447 B/op	     734 allocs/op
+BenchmarkRenderExampleSplit-8   	    7608	    156863 ns/op	   40760 B/op	     734 allocs/op
+BenchmarkRenderExampleSplit-8   	    9316	    144592 ns/op	   36213 B/op	     734 allocs/op
+BenchmarkRenderExampleSplit-8   	    7974	    137291 ns/op	   39124 B/op	     734 allocs/op
+BenchmarkRenderExampleSplit-8   	    9198	    144319 ns/op	   38166 B/op	     734 allocs/op
+BenchmarkRenderExampleSplit-8   	    7700	    143297 ns/op	   37291 B/op	     734 allocs/op
 PASS
-ok  	github.com/trippwill/keel	7.815s
+ok  	github.com/trippwill/keel	7.259s
 PASS
-ok  	github.com/trippwill/keel/core	0.003s
+ok  	github.com/trippwill/keel/core	0.004s
 goos: linux
 goarch: amd64
 pkg: github.com/trippwill/keel/engine
 cpu: Intel(R) Core(TM) Ultra 5 228V
-BenchmarkArrangeStack/n=3-8         	16826715	        91.45 ns/op	     120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=3-8         	15336018	        92.73 ns/op	     120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=3-8         	12570096	        91.17 ns/op	     120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=3-8         	16128856	        90.51 ns/op	     120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=3-8         	15566492	        86.15 ns/op	     120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=3-8         	16806970	        90.44 ns/op	     120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=8-8         	 8400988	       144.2 ns/op	     320 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=8-8         	 8480726	       145.1 ns/op	     320 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=8-8         	 8433961	       142.5 ns/op	     320 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=8-8         	 7989853	       140.6 ns/op	     320 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=8-8         	 9291494	       143.2 ns/op	     320 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=8-8         	 8345239	       144.8 ns/op	     320 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=32-8        	 3009115	       397.4 ns/op	    1280 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=32-8        	 3013021	       399.9 ns/op	    1280 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=32-8        	 3037226	       397.4 ns/op	    1280 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=32-8        	 3038503	       399.0 ns/op	    1280 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=32-8        	 2959932	       399.6 ns/op	    1280 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=32-8        	 2961878	       400.7 ns/op	    1280 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=128-8       	  821166	      1592 ns/op	    5120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=128-8       	  782184	      1616 ns/op	    5120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=128-8       	  744562	      1605 ns/op	    5120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=128-8       	  776335	      1602 ns/op	    5120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=128-8       	  773877	      1609 ns/op	    5120 B/op	       2 allocs/op
-BenchmarkArrangeStack/n=128-8       	  756950	      1597 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=3-8         	16620861	        89.37 ns/op	     120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=3-8         	12574366	        91.75 ns/op	     120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=3-8         	14129150	        93.76 ns/op	     120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=3-8         	13149097	        91.32 ns/op	     120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=3-8         	12574180	        92.04 ns/op	     120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=3-8         	12733603	        93.30 ns/op	     120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=8-8         	 8437150	       139.5 ns/op	     320 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=8-8         	 8044857	       147.7 ns/op	     320 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=8-8         	 8600530	       146.7 ns/op	     320 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=8-8         	 8520554	       137.6 ns/op	     320 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=8-8         	 8985439	       143.6 ns/op	     320 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=8-8         	 9208104	       138.8 ns/op	     320 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=32-8        	 2969348	       401.9 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=32-8        	 2970189	       399.8 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=32-8        	 3064389	       395.0 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=32-8        	 2992744	       402.7 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=32-8        	 2987308	       399.3 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=32-8        	 3002947	       401.1 ns/op	    1280 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=128-8       	  754550	      1614 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=128-8       	  672134	      1595 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=128-8       	  767917	      1592 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=128-8       	  709137	      1601 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=128-8       	  727465	      1591 ns/op	    5120 B/op	       2 allocs/op
+BenchmarkArrangeStack/n=128-8       	  713762	      1600 ns/op	    5120 B/op	       2 allocs/op
 PASS
-ok  	github.com/trippwill/keel/engine	30.403s
+ok  	github.com/trippwill/keel/engine	29.037s
 ?   	github.com/trippwill/keel/examples	[no test files]
 ?   	github.com/trippwill/keel/examples/dashboard	[no test files]
 PASS

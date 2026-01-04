@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/trippwill/keel"
 	"github.com/trippwill/keel/examples"
-	"github.com/trippwill/keel/logging"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 	size := keel.Size{Width: *width, Height: *height}
 
 	if *logPath != "" {
-		logger, file, err := logging.NewFileLoggerPath(*logPath)
+		file, err := os.Create(*logPath)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -41,7 +41,8 @@ func main() {
 				fmt.Println(err)
 			}
 		}()
-		config.SetLogger(logger.Log)
+		logger := slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		config.SetLogger(logger)
 	}
 
 	rendered, err := renderer.Render(size)

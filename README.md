@@ -119,17 +119,19 @@ allocations, frame renders, and render errors. Paths are slash-delimited slot
 indices rooted at `/` (e.g. `/0/1`).
 
 ```go
-// import "github.com/trippwill/keel/logging"
-logger := logging.NewFileLogger(os.Stdout)
+// import "log/slog"
+logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	Level: slog.LevelDebug,
+}))
 renderer := keel.NewRenderer(layout, styleProvider, contentProvider)
-renderer.Config().SetLogger(logger.Log)
+renderer.Config().SetLogger(logger)
 size := keel.Size{Width: 80, Height: 24}
 
 out, err := renderer.Render(size)
 ```
 
-The default message formats are available via `logging.LogEventFormats`, and you
-can supply any `logging.LoggerFunc` to integrate with your own logging.
+Keel logs are structured and include `event` and `path` attributes alongside
+event-specific metadata like sizes, frame IDs, and errors.
 
 ## Limitations
 

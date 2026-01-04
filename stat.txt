@@ -1,0 +1,43 @@
+goos: linux
+goarch: amd64
+pkg: github.com/trippwill/keel
+cpu: Intel(R) Core(TM) Ultra 5 228V
+                     │ current_bench_result-1.txt │   current_bench_result.txt    │
+                     │           sec/op           │    sec/op     vs base         │
+RenderExampleSplit-8                  148.3µ ± 7%   144.5µ ± 12%  ~ (p=1.000 n=6)
+
+                     │ current_bench_result-1.txt │    current_bench_result.txt    │
+                     │            B/op            │     B/op       vs base         │
+RenderExampleSplit-8                 37.06Ki ± 6%   37.74Ki ± 10%  ~ (p=0.394 n=6)
+
+                     │ current_bench_result-1.txt │   current_bench_result.txt    │
+                     │         allocs/op          │ allocs/op   vs base           │
+RenderExampleSplit-8                   734.0 ± 0%   734.0 ± 0%  ~ (p=1.000 n=6) ¹
+¹ all samples are equal
+
+pkg: github.com/trippwill/keel/engine
+                     │ current_bench_result-1.txt │     current_bench_result.txt      │
+                     │           sec/op           │   sec/op     vs base              │
+ArrangeStack/n=3-8                    90.84n ± 5%   91.90n ± 3%       ~ (p=0.180 n=6)
+ArrangeStack/n=8-8                    143.7n ± 2%   141.5n ± 4%       ~ (p=0.699 n=6)
+ArrangeStack/n=32-8                   399.3n ± 0%   400.4n ± 1%       ~ (p=0.288 n=6)
+ArrangeStack/n=128-8                  1.604µ ± 1%   1.598µ ± 1%       ~ (p=0.258 n=6)
+geomean                               302.4n        302.0n       -0.11%
+
+                     │ current_bench_result-1.txt │       current_bench_result.txt       │
+                     │            B/op            │     B/op      vs base                │
+ArrangeStack/n=3-8                     120.0 ± 0%     120.0 ± 0%       ~ (p=1.000 n=6) ¹
+ArrangeStack/n=8-8                     320.0 ± 0%     320.0 ± 0%       ~ (p=1.000 n=6) ¹
+ArrangeStack/n=32-8                  1.250Ki ± 0%   1.250Ki ± 0%       ~ (p=1.000 n=6) ¹
+ArrangeStack/n=128-8                 5.000Ki ± 0%   5.000Ki ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                708.3          708.3       +0.00%
+¹ all samples are equal
+
+                     │ current_bench_result-1.txt │      current_bench_result.txt      │
+                     │         allocs/op          │ allocs/op   vs base                │
+ArrangeStack/n=3-8                     2.000 ± 0%   2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ArrangeStack/n=8-8                     2.000 ± 0%   2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ArrangeStack/n=32-8                    2.000 ± 0%   2.000 ± 0%       ~ (p=1.000 n=6) ¹
+ArrangeStack/n=128-8                   2.000 ± 0%   2.000 ± 0%       ~ (p=1.000 n=6) ¹
+geomean                                2.000        2.000       +0.00%
+¹ all samples are equal

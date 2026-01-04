@@ -22,7 +22,7 @@ func TestRendererSetters(t *testing.T) {
 }
 
 func TestRendererSetConfigInvalidates(t *testing.T) {
-	renderer := NewRenderer[string](Row(FlexUnit(), Exact(Fixed(1), "a")), nil, func(id string, info FrameInfo) (string, error) { return "x", nil })
+	renderer := NewRenderer(Row(FlexUnit(), Exact(Fixed(1), "a")), nil, func(id string, info FrameInfo) (string, error) { return "x", nil })
 	if _, err := renderer.Render(Size{Width: 1, Height: 1}); err != nil {
 		t.Fatalf("unexpected render error: %v", err)
 	}

@@ -1,21 +1,21 @@
 package keel
 
-import "github.com/trippwill/keel/logging"
+import "log/slog"
 
 // Config stores shared render settings like logging and debug state.
 // It is safe to share a single config across multiple renderers.
 type Config struct {
-	logger logging.LoggerFunc
+	logger *slog.Logger
 	debug  bool
 }
 
-// NewConfig returns a new render config with default settings.
+// NewConfig returns a new renderer configuration with the default settings.
 func NewConfig() *Config {
 	return &Config{}
 }
 
 // Logger returns the configured logger, if any.
-func (c *Config) Logger() logging.LoggerFunc {
+func (c *Config) Logger() *slog.Logger {
 	if c == nil {
 		return nil
 	}
@@ -23,7 +23,7 @@ func (c *Config) Logger() logging.LoggerFunc {
 }
 
 // SetLogger sets the render logger.
-func (c *Config) SetLogger(logger logging.LoggerFunc) {
+func (c *Config) SetLogger(logger *slog.Logger) {
 	if c == nil {
 		return
 	}
@@ -38,7 +38,7 @@ func (c *Config) Debug() bool {
 	return c.debug
 }
 
-// SetDebug toggles debug rendering.
+// SetDebug sets debug rendering.
 func (c *Config) SetDebug(debug bool) {
 	if c == nil {
 		return

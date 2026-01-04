@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"log/slog"
 	"strconv"
 
 	"github.com/trippwill/keel/core"
@@ -40,7 +41,7 @@ type LayoutNode[KID core.KeelID] struct {
 }
 
 // Arrange arranges a [core.Spec] tree into concrete allocations for the given size.
-func Arrange[KID core.KeelID](spec core.Spec, size core.Size, logger logging.LoggerFunc) (Layout[KID], error) {
+func Arrange[KID core.KeelID](spec core.Spec, size core.Size, logger *slog.Logger) (Layout[KID], error) {
 	path := ""
 	if logger != nil {
 		path = "/"
@@ -57,7 +58,7 @@ func Arrange[KID core.KeelID](spec core.Spec, size core.Size, logger logging.Log
 	}, nil
 }
 
-func arrangeWithPath[KID core.KeelID](spec core.Spec, rect Rect, path string, logger logging.LoggerFunc) (LayoutNode[KID], error) {
+func arrangeWithPath[KID core.KeelID](spec core.Spec, rect Rect, path string, logger *slog.Logger) (LayoutNode[KID], error) {
 	switch n := spec.(type) {
 	case core.StackSpec:
 		return arrangeStackWithPath[KID](n, rect, path, logger)
@@ -74,7 +75,7 @@ func arrangeWithPath[KID core.KeelID](spec core.Spec, rect Rect, path string, lo
 	}
 }
 
-func arrangeStackWithPath[KID core.KeelID](stack core.StackSpec, rect Rect, path string, logger logging.LoggerFunc) (LayoutNode[KID], error) {
+func arrangeStackWithPath[KID core.KeelID](stack core.StackSpec, rect Rect, path string, logger *slog.Logger) (LayoutNode[KID], error) {
 	length := stack.Len()
 	if length <= 0 {
 		return LayoutNode[KID]{
@@ -121,14 +122,16 @@ func arrangeStackWithPath[KID core.KeelID](stack core.StackSpec, rect Rect, path
 		return LayoutNode[KID]{}, err
 	}
 
-	logger.LogEvent(
+	logging.LogEvent(
+		logger,
+		slog.LevelDebug,
+		logging.EventStackAlloc,
 		path,
-		logging.LogEventStackAlloc,
-		axis.String(),
-		total,
-		len(sizes),
-		sizes,
-		required,
+		slog.String("axis", axis.String()),
+		slog.Int("total", total),
+		slog.Int("slots", len(sizes)),
+		slog.Any("sizes", sizes),
+		slog.Int("required", required),
 	)
 
 	slots := make([]LayoutNode[KID], length)
@@ -173,11 +176,8 @@ func arrangeStackWithPath[KID core.KeelID](stack core.StackSpec, rect Rect, path
 	}, nil
 }
 
-func logError(logger logging.LoggerFunc, path string, stage string, err error) {
-	if logger == nil || err == nil {
-		return
-	}
-	logger.LogEvent(path, logging.LogEventRenderError, stage, err)
+func logError(logger *slog.Logger, path string, stage string, err error) {
+	logging.LogError(logger, path, stage, err)
 }
 
 func appendPath(path string, index int) string {
