@@ -9,7 +9,7 @@ type Config struct {
 	debug  bool
 }
 
-// NewConfig returns a new render config with default settings.
+// NewConfig returns a new renderer configuration with the default settings.
 func NewConfig() *Config {
 	return &Config{}
 }
@@ -38,7 +38,7 @@ func (c *Config) Debug() bool {
 	return c.debug
 }
 
-// SetDebug toggles debug rendering.
+// SetDebug sets debug rendering.
 func (c *Config) SetDebug(debug bool) {
 	if c == nil {
 		return
